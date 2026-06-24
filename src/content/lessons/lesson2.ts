@@ -123,22 +123,21 @@ export const lesson2: Lesson = {
     {
       id: "l2-s5",
       type: "challenge",
-      title: "Graph: Current vs Voltage",
+      title: "Plot: Current vs Voltage",
       prompt:
-        "With resistance fixed at 6Ω, this graph shows how current responds to voltage. Answer from the graph.",
+        "With resistance fixed at 6Ω, plot how the current responds to voltage yourself.",
       interaction: {
         kind: "graph",
         graphType: "current-vs-voltage",
         fixedResistance: 6,
-        questionType: "numeric",
-        scenario: "What is the current when voltage is 12V?",
-        correctAnswer: 2,
-        tolerance: 0.1,
+        questionType: "plot",
+        plotXs: [0, 6, 12, 18],
+        scenario: "Tap the graph to plot the current (I = V / R) at each marked voltage.",
       },
       feedback: {
-        correct: "At 12V and 6Ω, I = 2A — the graph follows I = V/R.",
-        incorrect: "Read the point where V = 12 on the graph, or use I = V/R.",
-        hint: "I = 12 / 6.",
+        correct: "A straight line through the origin — current rises 1A for every 6V (I = V/R).",
+        incorrect: "For each voltage, compute I = V / 6 and place the point at that height.",
+        hint: "0V → 0A, 6V → 1A, 12V → 2A, 18V → 3A.",
       },
     },
     {

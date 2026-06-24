@@ -145,12 +145,14 @@ export type InteractionConfig =
       graphType: "current-vs-resistance" | "current-vs-voltage" | "power-vs-voltage";
       fixedVoltage?: number;
       fixedResistance?: number;
-      questionType: "mcq" | "numeric";
+      questionType: "mcq" | "numeric" | "plot";
       options?: string[];
       correctIndex?: number;
       correctAnswer?: number;
       tolerance?: number;
       scenario?: string;
+      /** x-values the learner must plot the matching y for (plot mode) */
+      plotXs?: number[];
     };
 
 export type StepFeedback = {

@@ -188,6 +188,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
       <p className="mb-4 leading-relaxed text-slate-300">{step.prompt}</p>
 
       <StepRenderer
+        key={step.id}
         step={step}
         attempts={attempts}
         onAttempt={recordAttempt}
