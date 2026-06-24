@@ -63,13 +63,13 @@ export function MasteryStep({
       <p className="mb-4 font-medium">{q.prompt}</p>
 
       {q.kind === "mcq" && q.options && (
-        <McqQuestion question={q} onAnswer={recordResult} />
+        <McqQuestion key={q.id} question={q} onAnswer={recordResult} />
       )}
       {q.kind === "numeric" && (
-        <NumericQuestion question={q} onAnswer={recordResult} />
+        <NumericQuestion key={q.id} question={q} onAnswer={recordResult} />
       )}
       {q.kind === "config" && (
-        <ConfigQuestion question={q} onAnswer={recordResult} />
+        <ConfigQuestion key={q.id} question={q} onAnswer={recordResult} />
       )}
     </div>
   );
