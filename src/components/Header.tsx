@@ -12,8 +12,8 @@ export function Header() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-      <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link href={user ? "/course" : "/"} className="flex items-center gap-2">
           <span className="text-xl">⚡</span>
           <span className="font-bold tracking-tight">CircuitLab</span>

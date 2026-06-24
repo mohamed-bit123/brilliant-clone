@@ -61,8 +61,9 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
 export function StreakBadge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-orange-950/80 px-3 py-1 text-sm font-medium text-orange-300 ring-1 ring-orange-500/30">
-      🔥 {count} Day Streak
+    <span className="inline-flex items-center gap-1 rounded-full bg-orange-950/80 px-3 py-1 text-sm font-medium leading-none text-orange-300 ring-1 ring-orange-500/30">
+      <span className="leading-none">🔥</span>
+      <span className="leading-none">{count} Day Streak</span>
     </span>
   );
 }

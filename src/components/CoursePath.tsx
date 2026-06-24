@@ -14,39 +14,44 @@ export function CoursePath() {
   const completedCount = getCourseCompletionCount(state);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6">
-      <div className="mb-6 flex items-start justify-between">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{course.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">{course.description}</p>
+          <h1 className="text-2xl font-bold lg:text-3xl">{course.title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">{course.description}</p>
         </div>
         <StreakBadge count={state.streak.currentStreak} />
       </div>
 
-      <ProgressBar
-        value={completedCount / course.lessons.length}
-        label={`Course Progress · ${completedCount}/${course.lessons.length} Lessons`}
-      />
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 sm:p-5">
+        <ProgressBar
+          value={completedCount / course.lessons.length}
+          label={`Course Progress · ${completedCount}/${course.lessons.length} Lessons`}
+        />
+      </div>
 
-      <div className="mt-8 flex flex-col gap-3">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
         {course.lessons.map((lesson) => {
           const progress = state.lessonProgress[lesson.id];
           const unlocked = state.unlockedLessons.includes(lesson.id);
           const completed = progress?.completed ?? false;
-          const inProgress =
-            unlocked && !completed && (progress?.currentStep ?? 0) > 0;
+          const currentStep = progress?.currentStep ?? 0;
+          const inProgress = unlocked && !completed && currentStep > 0;
+          const stepPct = Math.round(
+            (Math.min(currentStep, lesson.steps.length) / lesson.steps.length) * 100
+          );
 
           return (
             <Link
               key={lesson.id}
               href={unlocked ? `/lesson/${lesson.id}` : "#"}
-              className={`block rounded-2xl border p-4 transition-all ${
+              className={`group flex flex-col rounded-2xl border p-4 transition-all sm:p-5 ${
                 unlocked
                   ? completed
-                    ? "border-emerald-500/40 bg-emerald-950/20 hover:border-emerald-500/60"
+                    ? "border-emerald-500/40 bg-emerald-950/20 hover:-translate-y-0.5 hover:border-emerald-500/60"
                     : inProgress
-                      ? "border-sky-500/40 bg-sky-950/20 hover:border-sky-500/60"
-                      : "border-slate-600 bg-slate-800/40 hover:border-slate-500"
+                      ? "border-sky-500/40 bg-sky-950/20 hover:-translate-y-0.5 hover:border-sky-500/60"
+                      : "border-slate-700 bg-slate-800/40 hover:-translate-y-0.5 hover:border-slate-500"
                   : "cursor-not-allowed border-slate-700/50 bg-slate-900/40 opacity-50"
               }`}
               onClick={(e) => !unlocked && e.preventDefault()}
@@ -61,33 +66,48 @@ export function CoursePath() {
                         : "bg-slate-700 text-slate-400"
                   }`}
                 >
-                  {completed ? "✓" : lesson.order}
+                  {completed ? "✓" : unlocked ? lesson.order : "🔒"}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold">{lesson.title}</h3>
-                  <p className="truncate text-xs text-slate-400">
-                    {lesson.description}
-                  </p>
-                  {completed && (
-                    <p className="mt-1 text-xs text-emerald-400">
-                      Mastered · Tap to review
-                    </p>
-                  )}
-                  {unlocked && !completed && (progress?.currentStep ?? 0) === 0 && (
-                    <p className="mt-1 text-xs text-slate-500">Ready to start</p>
-                  )}
-                  {inProgress && (
-                    <p className="mt-1 text-xs text-sky-400">
-                      In progress · Step {(progress?.currentStep ?? 0) + 1}/
-                      {lesson.steps.length}
-                    </p>
-                  )}
-                  {!unlocked && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Complete previous lesson to unlock
-                    </p>
-                  )}
+                  <p className="text-xs text-slate-400">{lesson.description}</p>
                 </div>
+                <span
+                  className={`shrink-0 text-lg transition-transform group-hover:translate-x-0.5 ${
+                    unlocked ? "text-slate-500" : "text-transparent"
+                  }`}
+                >
+                  →
+                </span>
+              </div>
+
+              <div className="mt-3 pl-13">
+                {completed && (
+                  <p className="text-xs font-medium text-emerald-400">
+                    ✓ Mastered · Tap to review
+                  </p>
+                )}
+                {unlocked && !completed && currentStep === 0 && (
+                  <p className="text-xs text-slate-500">Ready to start</p>
+                )}
+                {inProgress && (
+                  <div>
+                    <p className="mb-1 text-xs text-sky-400">
+                      In progress · Step {currentStep + 1}/{lesson.steps.length}
+                    </p>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-700/70">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-400"
+                        style={{ width: `${stepPct}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {!unlocked && (
+                  <p className="text-xs text-slate-500">
+                    Complete previous lesson to unlock
+                  </p>
+                )}
               </div>
             </Link>
           );

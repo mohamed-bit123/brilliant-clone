@@ -13,7 +13,11 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1000px circle at 12% -10%, rgba(56, 189, 248, 0.1), transparent 45%),
+    radial-gradient(800px circle at 100% 0%, rgba(16, 185, 129, 0.08), transparent 42%),
+    var(--background);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100dvh;

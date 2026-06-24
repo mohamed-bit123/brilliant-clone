@@ -77,6 +77,22 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
     setLocalAttempts({});
   }, []);
 
+  const completedSet = useMemo(
+    () => new Set(saved.completedStepIndices ?? []),
+    [saved.completedStepIndices]
+  );
+  const maxReached = Math.max(
+    stepIndex,
+    saved.currentStep ?? 0,
+    ...(saved.completedStepIndices?.length ? saved.completedStepIndices : [0])
+  );
+
+  const goToStep = useCallback((i: number) => {
+    setShowComplete(false);
+    setStepIndex(i);
+    setLocalAttempts({});
+  }, []);
+
   const retryMastery = useCallback(() => {
     setShowComplete(false);
     setStepIndex(lesson.steps.length - 1);
@@ -104,7 +120,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
 
   if (showComplete) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-8">
+      <div className="mx-auto max-w-md px-4 py-12 lg:py-20">
         <div className="text-center">
           <div className="text-5xl">{passed ? "⚡" : "📖"}</div>
           <h2 className="mt-4 text-2xl font-bold">
@@ -168,33 +184,101 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6">
-      <div className="mb-6">
-        <div className="mb-1 flex items-center justify-between">
-          <Link href="/course" className="text-sm text-slate-400 hover:text-slate-300">
-            ← Course
-          </Link>
-          <span className="text-xs text-slate-500">
-            Step {stepIndex + 1}/{lesson.steps.length}
-          </span>
-        </div>
-        <h1 className="text-xl font-bold">{lesson.title}</h1>
-        <p className="mt-1 text-sm font-medium text-sky-400">{step.title}</p>
-        <div className="mt-3">
-          <ProgressBar value={progress} label="Lesson Progress" />
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-10">
+      <div className="lg:grid lg:grid-cols-[260px_1fr] lg:gap-10">
+        {/* Desktop sidebar with step tracker */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 space-y-5">
+            <Link
+              href="/course"
+              className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200"
+            >
+              ← Back to course
+            </Link>
+            <div>
+              <h1 className="text-lg font-bold leading-tight">{lesson.title}</h1>
+              <div className="mt-3">
+                <ProgressBar value={progress} label="Progress" />
+              </div>
+            </div>
+            <ol className="space-y-1">
+              {lesson.steps.map((s, i) => {
+                const isDone = completedSet.has(i);
+                const isCurrent = i === stepIndex;
+                const reachable = i <= maxReached;
+                return (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      disabled={!reachable}
+                      onClick={() => reachable && goToStep(i)}
+                      className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                        isCurrent
+                          ? "bg-sky-950/60 text-sky-200 ring-1 ring-sky-500/40"
+                          : reachable
+                            ? "text-slate-300 hover:bg-slate-800/60"
+                            : "cursor-not-allowed text-slate-600"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                          isDone
+                            ? "bg-emerald-600 text-white"
+                            : isCurrent
+                              ? "bg-sky-600 text-white"
+                              : reachable
+                                ? "bg-slate-700 text-slate-300"
+                                : "bg-slate-800 text-slate-600"
+                        }`}
+                      >
+                        {isDone ? "✓" : i + 1}
+                      </span>
+                      <span className="truncate">{s.title}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <div className="mx-auto w-full max-w-xl lg:mx-0">
+          {/* Mobile header */}
+          <div className="mb-6 lg:hidden">
+            <div className="mb-1 flex items-center justify-between">
+              <Link href="/course" className="text-sm text-slate-400 hover:text-slate-300">
+                ← Course
+              </Link>
+              <span className="text-xs text-slate-500">
+                Step {stepIndex + 1}/{lesson.steps.length}
+              </span>
+            </div>
+            <h1 className="text-xl font-bold">{lesson.title}</h1>
+            <div className="mt-3">
+              <ProgressBar value={progress} label="Lesson Progress" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 sm:p-6 lg:p-8">
+            <p className="text-xs font-medium uppercase tracking-wide text-sky-400">
+              {step.title}
+            </p>
+            <p className="mt-2 mb-5 text-lg leading-relaxed text-slate-200">
+              {step.prompt}
+            </p>
+
+            <StepRenderer
+              key={step.id}
+              step={step}
+              attempts={attempts}
+              onAttempt={recordAttempt}
+              onComplete={advanceStep}
+              masteryThreshold={lesson.masteryThreshold}
+            />
+          </div>
         </div>
       </div>
-
-      <p className="mb-4 leading-relaxed text-slate-300">{step.prompt}</p>
-
-      <StepRenderer
-        key={step.id}
-        step={step}
-        attempts={attempts}
-        onAttempt={recordAttempt}
-        onComplete={advanceStep}
-        masteryThreshold={lesson.masteryThreshold}
-      />
     </div>
   );
 }
