@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 import type { InteractionConfig } from "@/lib/types";
+import type { PracticeTopic } from "@/lib/ai/types";
 import { FeedbackBanner } from "@/components/ui/FeedbackBanner";
 import { CircuitVisual, previewResistance } from "@/components/CircuitVisual";
+import { useAIStatus } from "@/hooks/useAIStatus";
+import { contextFromNumeric } from "@/lib/ai/context";
+import { AIHint, AIExplain } from "@/components/ai/AITutor";
 
 type CalcStepProps = {
   interaction: Extract<InteractionConfig, { kind: "numeric-calc" }>;
   feedback: { correct: string; incorrect: string; hint?: string };
   onComplete: (correct: boolean) => void;
   attempts: number;
+  /** When set (with AI configured), enables grounded AI hints + explanations. */
+  topic?: PracticeTopic;
+  questionPrompt?: string;
+  stepTitle?: string;
 };
 
 const SOLVE_LABELS: Record<
@@ -29,16 +37,31 @@ export function CalcStep({
   feedback,
   onComplete,
   attempts,
+  topic,
+  questionPrompt,
+  stepTitle,
 }: CalcStepProps) {
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [wrongCount, setWrongCount] = useState(0);
+  const aiEnabled = useAIStatus();
 
   const num = parseFloat(value);
   const tol = interaction.tolerance ?? 0.15;
   const isCorrect =
     !Number.isNaN(num) &&
     Math.abs(num - interaction.correctAnswer) <= tol;
+
+  const aiReady = aiEnabled && Boolean(topic);
+  const baseContext = topic
+    ? contextFromNumeric(interaction, {
+        topic,
+        prompt: questionPrompt ?? stepTitle ?? "this problem",
+        stepTitle: stepTitle ?? "Practice",
+        attempts,
+      })
+    : null;
 
   const preview = interaction.circuitPreview;
   const branchLabel =
@@ -105,7 +128,10 @@ export function CalcStep({
           >
             Check Answer
           </button>
-          {attempts >= 2 && feedback.hint && !showHint && (
+          {aiReady && baseContext && (attempts >= 1 || wrongCount >= 1) && (
+            <AIHint key={wrongCount} context={baseContext} />
+          )}
+          {!aiReady && attempts >= 2 && feedback.hint && !showHint && (
             <button
               type="button"
               onClick={() => setShowHint(true)}
@@ -114,7 +140,7 @@ export function CalcStep({
               Show hint
             </button>
           )}
-          {showHint && feedback.hint && (
+          {!aiReady && showHint && feedback.hint && (
             <FeedbackBanner message={feedback.hint} variant="hint" />
           )}
         </>
@@ -137,13 +163,19 @@ export function CalcStep({
         </button>
       )}
 
+      {submitted && !isCorrect && aiReady && baseContext && (
+        <AIExplain context={{ ...baseContext, learnerAnswer: num }} />
+      )}
+
       {submitted && !isCorrect && (
         <button
           type="button"
           onClick={() => {
             onComplete(false);
+            setWrongCount((c) => c + 1);
             setValue("");
             setSubmitted(false);
+            setShowHint(false);
           }}
           className="mt-4 w-full rounded-xl bg-slate-600 py-3 font-medium text-white hover:bg-slate-500"
         >

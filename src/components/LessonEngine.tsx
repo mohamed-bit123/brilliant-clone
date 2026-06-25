@@ -18,6 +18,7 @@ import { MasteryStep } from "@/components/steps/MasteryStep";
 import { CalcStep } from "@/components/steps/CalcStep";
 import { GraphStep } from "@/components/steps/GraphStep";
 import { ConceptStep } from "@/components/steps/ConceptStep";
+import { LESSON_TOPIC } from "@/lib/ai/types";
 import Link from "next/link";
 
 type LessonEngineProps = {
@@ -152,6 +153,13 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
             {wasCompleted ? "Review Lesson Again" : "Review Full Lesson"}
           </button>
 
+          <Link
+            href={`/lesson/${lesson.id}/practice`}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-950/30 py-3.5 font-medium text-amber-200 hover:border-amber-400/60 hover:bg-amber-950/50"
+          >
+            <span aria-hidden>✨</span> Practice more — adaptive problems
+          </Link>
+
           {passed && nextLesson && (
             <Link
               href={`/lesson/${nextLesson.id}`}
@@ -239,6 +247,12 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
                 );
               })}
             </ol>
+            <Link
+              href={`/lesson/${lesson.id}/practice`}
+              className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-sm font-medium text-amber-300 hover:border-amber-400/50 hover:bg-amber-950/40"
+            >
+              <span aria-hidden>✨</span> Practice more
+            </Link>
           </div>
         </aside>
 
@@ -271,6 +285,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
             <StepRenderer
               key={step.id}
               step={step}
+              lessonId={lesson.id}
               attempts={attempts}
               onAttempt={recordAttempt}
               onComplete={advanceStep}
@@ -285,18 +300,21 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
 
 function StepRenderer({
   step,
+  lessonId,
   attempts,
   onAttempt,
   onComplete,
   masteryThreshold,
 }: {
   step: Step;
+  lessonId: string;
   attempts: number;
   onAttempt: () => void;
   onComplete: (correct: boolean, masteryScore?: number) => void;
   masteryThreshold: number;
 }) {
   const { interaction, feedback } = step;
+  const topic = LESSON_TOPIC[lessonId];
 
   const wrapComplete = (correct: boolean) => {
     if (!correct) onAttempt();
@@ -392,6 +410,9 @@ function StepRenderer({
           feedback={feedback}
           attempts={attempts}
           onComplete={wrapComplete}
+          topic={topic}
+          questionPrompt={step.prompt}
+          stepTitle={step.title}
         />
       );
     case "graph":
