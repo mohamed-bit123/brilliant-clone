@@ -25,6 +25,33 @@ export type CircuitPreview = {
   r2?: number;
 };
 
+export type SourceArrangement =
+  | "single"
+  | "series-aiding"
+  | "series-opposing"
+  | "parallel";
+
+/**
+ * A small multi-source network: one or two EMF sources (each with optional
+ * internal resistance) driving a single external load. Used by the
+ * "Multiple Voltage Sources" lesson and its practice generator.
+ */
+export type MultiSourceConfig = {
+  arrangement: SourceArrangement;
+  /** EMF of source 1 (volts). */
+  e1: number;
+  /** EMF of source 2 (volts); ignored for "single". */
+  e2?: number;
+  /** Internal resistance of source 1 (ohms). */
+  r1?: number;
+  /** Internal resistance of source 2 (ohms). */
+  r2?: number;
+  /** External load resistance (ohms). Omit for an open-circuit (no current). */
+  load?: number;
+  /** Hide a value the learner is solving for so the diagram can't reveal it. */
+  mask?: "current" | "netEmf" | "terminal";
+};
+
 export type InteractionConfig =
   | {
       kind: "concept";
@@ -32,6 +59,7 @@ export type InteractionConfig =
       analogy?: { title: string; body: string };
       formula?: { expression: string; caption?: string };
       visual?: CircuitPreview;
+      multiSource?: MultiSourceConfig;
       keyPoints?: string[];
       continueLabel?: string;
     }
@@ -139,6 +167,7 @@ export type InteractionConfig =
       tolerance?: number;
       answerUnit: string;
       circuitPreview?: CircuitPreview;
+      multiSourcePreview?: MultiSourceConfig;
     }
   | {
       kind: "graph";
@@ -243,4 +272,59 @@ export function seriesResistance(r1: number, r2: number): number {
 export function parallelResistance(r1: number, r2: number): number {
   if (r1 <= 0 || r2 <= 0) return 0;
   return (r1 * r2) / (r1 + r2);
+}
+
+export type MultiSourceSolution = {
+  /** Net driving EMF around the loop (volts). */
+  netEmf: number;
+  /** Total resistance in the loop, internal + load (ohms). */
+  totalResistance: number;
+  /** Loop current (amps). 0 if there is no closed load. */
+  current: number;
+  /** Terminal voltage delivered to the load (volts). */
+  terminalVoltage: number;
+};
+
+/**
+ * Solve a one- or two-source single-loop network. The deterministic source of
+ * truth for the "Multiple Voltage Sources" lesson and practice generator.
+ *
+ *   single / series-aiding : net EMF = ε₁ (+ ε₂)
+ *   series-opposing        : net EMF = |ε₁ − ε₂|
+ *   parallel (equal EMFs)  : net EMF = ε₁, internal r's combine in parallel
+ */
+export function solveMultiSource(config: MultiSourceConfig): MultiSourceSolution {
+  const e1 = config.e1;
+  const e2 = config.e2 ?? 0;
+  const ri1 = config.r1 ?? 0;
+  const ri2 = config.r2 ?? 0;
+  const load = config.load ?? 0;
+
+  let netEmf: number;
+  let internal: number;
+
+  switch (config.arrangement) {
+    case "series-aiding":
+      netEmf = e1 + e2;
+      internal = ri1 + ri2;
+      break;
+    case "series-opposing":
+      netEmf = Math.abs(e1 - e2);
+      internal = ri1 + ri2;
+      break;
+    case "parallel":
+      // Identical-EMF parallel cells: EMF unchanged, internal r's in parallel.
+      netEmf = e1;
+      internal = ri1 > 0 && ri2 > 0 ? parallelResistance(ri1, ri2) : ri1 || ri2;
+      break;
+    default:
+      netEmf = e1;
+      internal = ri1;
+  }
+
+  const totalResistance = internal + load;
+  const current = totalResistance > 0 ? netEmf / totalResistance : 0;
+  const terminalVoltage = current * load;
+
+  return { netEmf, totalResistance, current, terminalVoltage };
 }

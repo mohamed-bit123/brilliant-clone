@@ -2,6 +2,7 @@
 
 import type { InteractionConfig } from "@/lib/types";
 import { CircuitVisual, previewResistance } from "@/components/CircuitVisual";
+import { MultiSourceVisual } from "@/components/MultiSourceVisual";
 
 type ConceptStepProps = {
   interaction: Extract<InteractionConfig, { kind: "concept" }>;
@@ -9,10 +10,11 @@ type ConceptStepProps = {
 };
 
 export function ConceptStep({ interaction, onComplete }: ConceptStepProps) {
-  const { sections, analogy, formula, visual, keyPoints } = interaction;
+  const { sections, analogy, formula, visual, multiSource, keyPoints } = interaction;
 
   return (
     <div className="space-y-5">
+      {multiSource && <MultiSourceVisual config={multiSource} />}
       {visual && (
         <CircuitVisual
           mode={visual.mode}

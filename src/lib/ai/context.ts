@@ -47,7 +47,11 @@ export function contextFromNumeric(
     solveFor: interaction.solveFor,
     answerUnit: interaction.answerUnit,
     correctAnswer: interaction.correctAnswer,
-    steps: [methodHintFor(interaction.solveFor)],
+    steps: [
+      opts.topic === "sources"
+        ? "Combine the sources first (series EMFs add, opposing subtract, identical parallel cells keep EMF), treat internal resistance as series R, then apply I = ε_net / R_total and V = ε − I·r."
+        : methodHintFor(interaction.solveFor),
+    ],
     learnerAnswer: opts.learnerAnswer,
     attempts: opts.attempts,
   };

@@ -4,14 +4,15 @@
 
 CircuitLab is a learn-by-doing app for high school students (ages 14–18) learning introductory physics. Instead of videos and quizzes, learners manipulate live circuits—adjusting voltage and resistance, watching current and bulb brightness respond—and discover concepts like Ohm's Law through experimentation.
 
-The app goes deep on one subject, not wide across many. The **Circuits Fundamentals** course has six interactive lessons:
+The app goes deep on one subject, not wide across many. The **Circuits Fundamentals** course has seven interactive lessons:
 
 1. Discovering Ohm's Law
 2. Series Circuits
 3. Parallel Circuits
 4. Equivalent Resistance
 5. Power and Energy
-6. Circuit Challenge Lab
+6. Multiple Voltage Sources — EMF, internal resistance, series/parallel sources, and Kirchhoff's voltage law
+7. Circuit Challenge Lab
 
 See [PRD.md](./PRD.md) for full product requirements, lesson specs, and build phases.
 
@@ -52,7 +53,7 @@ To wipe every user and start fresh, run `supabase/reset.sql` in the Supabase SQL
 
 CircuitLab has three optional AI features that are **purely additive** — the app works exactly the same with AI off:
 
-1. **Adaptive practice** — every lesson has a "Practice more" mode that generates an endless stream of problems that get harder as you get them right.
+1. **Adaptive practice** — every lesson has a "Practice more" mode that generates an endless stream of problems that get harder as you get them right, climbing to university-introductory rigor (ladder networks, P = I²R in a series resistor, battery charging, Kirchhoff's voltage law) at the top tiers.
 2. **Smart hints** — when you're stuck on a calculation, get a grounded nudge that never reveals the answer.
 3. **Explain my mistake** — a wrong numeric answer is diagnosed and explained in plain language, tuned to the specific error you made.
 

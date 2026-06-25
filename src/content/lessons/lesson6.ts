@@ -3,7 +3,7 @@ import type { Lesson } from "@/lib/types";
 export const lesson6: Lesson = {
   id: "lesson-6",
   title: "Circuit Challenge Lab",
-  order: 6,
+  order: 7,
   description: "Apply everything you've learned in multi-step circuit design puzzles.",
   masteryThreshold: 1,
   steps: [

@@ -526,7 +526,18 @@ function GraphChart({
   const points = sampleXs.map((x) => ({ x, y: model.compute(x) }));
   const xMin = model.xMin;
   const xMax = model.xMax;
-  const yMax = Math.max(...points.map((p) => p.y)) * 1.1;
+
+  // Round the y-axis up to a clean maximum so the tick numbers read nicely.
+  const yMaxRaw = Math.max(...points.map((p) => p.y), 1);
+  const yStep = niceStep(yMaxRaw);
+  const yMax = Math.ceil(yMaxRaw / yStep) * yStep || yStep;
+  const yTicks = Array.from(
+    { length: Math.round(yMax / yStep) + 1 },
+    (_, i) => i * yStep
+  );
+
+  const fmt = (n: number) =>
+    Number.isInteger(n) ? `${n}` : (Math.round(n * 100) / 100).toString();
 
   const toSvg = (x: number, y: number) => ({
     sx: pad.l + ((x - xMin) / (xMax - xMin)) * plotW,
@@ -544,6 +555,47 @@ function GraphChart({
     <div className="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
       <p className="mb-1 text-center text-xs text-slate-500">{model.note}</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-sm">
+        {/* horizontal gridlines + y-axis numbers */}
+        {yTicks.map((ty) => {
+          const { sy } = toSvg(xMin, ty);
+          return (
+            <g key={`y-${ty}`}>
+              <line
+                x1={pad.l}
+                y1={sy}
+                x2={pad.l + plotW}
+                y2={sy}
+                stroke="#1e293b"
+                strokeWidth="1"
+              />
+              <text x={pad.l - 6} y={sy + 3} textAnchor="end" fill="#64748b" fontSize="9">
+                {fmt(ty)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* vertical gridlines + x-axis numbers at each sample point */}
+        {sampleXs.map((x) => {
+          const { sx } = toSvg(x, 0);
+          return (
+            <g key={`x-${x}`}>
+              <line
+                x1={sx}
+                y1={pad.t}
+                x2={sx}
+                y2={pad.t + plotH}
+                stroke="#1e293b"
+                strokeWidth="1"
+              />
+              <text x={sx} y={pad.t + plotH + 14} textAnchor="middle" fill="#64748b" fontSize="9">
+                {fmt(x)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* axes */}
         <line x1={pad.l} y1={pad.t + plotH} x2={pad.l + plotW} y2={pad.t + plotH} stroke="#64748b" strokeWidth="2" />
         <line x1={pad.l} y1={pad.t} x2={pad.l} y2={pad.t + plotH} stroke="#64748b" strokeWidth="2" />
         <path d={pathD} fill="none" stroke="#38bdf8" strokeWidth="2.5" />
@@ -551,16 +603,16 @@ function GraphChart({
           const { sx, sy } = toSvg(p.x, p.y);
           return <circle key={p.x} cx={sx} cy={sy} r={4} fill="#38bdf8" />;
         })}
-        <text x={pad.l + plotW / 2} y={H - 6} textAnchor="middle" fill="#94a3b8" fontSize="11">
+        <text x={pad.l + plotW / 2} y={H - 4} textAnchor="middle" fill="#94a3b8" fontSize="11">
           {model.xLabel}
         </text>
         <text
-          x={12}
+          x={11}
           y={pad.t + plotH / 2}
           textAnchor="middle"
           fill="#94a3b8"
           fontSize="11"
-          transform={`rotate(-90 12 ${pad.t + plotH / 2})`}
+          transform={`rotate(-90 11 ${pad.t + plotH / 2})`}
         >
           {model.yLabel}
         </text>

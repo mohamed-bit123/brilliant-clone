@@ -5,6 +5,7 @@ import type { InteractionConfig } from "@/lib/types";
 import type { PracticeTopic } from "@/lib/ai/types";
 import { FeedbackBanner } from "@/components/ui/FeedbackBanner";
 import { CircuitVisual, previewResistance } from "@/components/CircuitVisual";
+import { MultiSourceVisual } from "@/components/MultiSourceVisual";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { contextFromNumeric } from "@/lib/ai/context";
 import { AIHint, AIExplain } from "@/components/ai/AITutor";
@@ -18,6 +19,9 @@ type CalcStepProps = {
   topic?: PracticeTopic;
   questionPrompt?: string;
   stepTitle?: string;
+  /** Quiz mode hides the diagram's computed-values panel so it can't reveal
+   *  the answer. Used for generated practice problems. */
+  quizVisual?: boolean;
 };
 
 const SOLVE_LABELS: Record<
@@ -40,6 +44,7 @@ export function CalcStep({
   topic,
   questionPrompt,
   stepTitle,
+  quizVisual = false,
 }: CalcStepProps) {
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -71,6 +76,11 @@ export function CalcStep({
 
   return (
     <div>
+      {interaction.multiSourcePreview && (
+        <div className="mb-4">
+          <MultiSourceVisual config={interaction.multiSourcePreview} quiz={quizVisual} />
+        </div>
+      )}
       {preview && (
         <div className="mb-4">
           <CircuitVisual
@@ -81,6 +91,7 @@ export function CalcStep({
             r2={preview.r2}
             maskSolveFor={interaction.solveFor}
             maskBranchIndex={interaction.branchIndex}
+            quiz={quizVisual}
           />
         </div>
       )}

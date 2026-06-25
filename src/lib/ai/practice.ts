@@ -3,8 +3,10 @@ import {
   computePower,
   parallelResistance,
   seriesResistance,
+  solveMultiSource,
   type CircuitPreview,
   type InteractionConfig,
+  type MultiSourceConfig,
 } from "@/lib/types";
 import type {
   Difficulty,
@@ -74,6 +76,32 @@ function build(
       answerUnit,
       circuitPreview: preview,
       ...(branchIndex ? { branchIndex } : {}),
+    },
+    solution: { answer: rounded, unit: answerUnit, steps },
+  };
+}
+
+/** Like build(), but attaches a multi-source schematic instead of a single-source one. */
+function buildMS(
+  givens: { label: string; value: number; unit: string }[],
+  solveFor: NumericInteraction["solveFor"],
+  answer: number,
+  answerUnit: string,
+  steps: string[],
+  prompt: string,
+  multiSource: MultiSourceConfig
+): Built {
+  const rounded = round2(answer);
+  return {
+    prompt,
+    interaction: {
+      kind: "numeric-calc",
+      givens,
+      solveFor,
+      correctAnswer: rounded,
+      tolerance: toleranceFor(rounded),
+      answerUnit,
+      multiSourcePreview: multiSource,
     },
     solution: { answer: rounded, unit: answerUnit, steps },
   };
@@ -194,8 +222,8 @@ function genSeries(d: Difficulty): Built {
         "The two resistors add in series, so R2 = R_total − R1.",
         `R2 = ${round2(r1 + r2)} − ${r1} = ${round2(missing)} Ω.`,
       ],
-      `A ${V} V battery should push exactly ${targetI} A through two series resistors. One is ${r1} Ω. What must the second resistor be?`,
-      { mode: "series", voltage: V, r1, r2 }
+      `A ${V} V battery should push exactly ${targetI} A through two series resistors. One is ${r1} Ω. What must the second resistor be?`
+      // No diagram: it would label R2 with the answer.
     );
   }
 
@@ -219,8 +247,8 @@ function genSeries(d: Difficulty): Built {
         `Current: I = V / R = ${V} / ${rTotal} = ${round2(I)} A.`,
         `Voltage across R1: V1 = I × R1 = ${round2(I)} × ${r1} = ${round2(drop)} V.`,
       ],
-      `Two resistors (${r1} Ω and ${r2} Ω) are in series across a ${V} V battery. What is the voltage drop across the ${r1} Ω resistor?`,
-      { mode: "series", voltage: V, r1, r2 }
+      `Two resistors (${r1} Ω and ${r2} Ω) are in series across a ${V} V battery. What is the voltage drop across the ${r1} Ω resistor?`
+      // No diagram: the battery voltage here is a given, not the unknown drop.
     );
   }
 
@@ -274,8 +302,8 @@ function genParallel(d: Difficulty): Built {
         `Branch 2 must carry the rest: I2 = I_total − I1 = ${round2(targetTotal)} − ${round2(i1)} = ${round2(i2)} A.`,
         `R2 = V / I2 = ${V} / ${round2(i2)} = ${round2(missing)} Ω.`,
       ],
-      `A ${V} V battery feeds two parallel branches and should draw ${round2(targetTotal)} A total. Branch 1 is ${r1} Ω. What resistance is branch 2?`,
-      { mode: "parallel", voltage: V, r1, r2 }
+      `A ${V} V battery feeds two parallel branches and should draw ${round2(targetTotal)} A total. Branch 1 is ${r1} Ω. What resistance is branch 2?`
+      // No diagram: it would label branch 2 with the answer.
     );
   }
 
@@ -329,6 +357,55 @@ function genParallel(d: Difficulty): Built {
 
 function genEquivalent(d: Difficulty): Built {
   const pool = [2, 3, 4, 6, 8, 12];
+
+  // Level 5: a four-resistor ladder — two series pairs combined in parallel.
+  if (d >= 5) {
+    const a = pick(pool);
+    const b = pick(pool);
+    const c = pick(pool);
+    const e = pick(pool);
+    const top = seriesResistance(a, b);
+    const bottom = seriesResistance(c, e);
+    const rTotal = parallelResistance(top, bottom);
+    const desc = `R1 (${a} Ω) and R2 (${b} Ω) are in series in one branch; R3 (${c} Ω) and R4 (${e} Ω) are in series in a second branch; the two branches are in parallel`;
+    const steps = [
+      `Top branch (series): ${a} + ${b} = ${top} Ω.`,
+      `Bottom branch (series): ${c} + ${e} = ${bottom} Ω.`,
+      `The branches are in parallel: (${top} × ${bottom}) / (${top} + ${bottom}) = ${round2(rTotal)} Ω.`,
+    ];
+    if (Math.random() < 0.5) {
+      const V = pick([12, 24, 36, 48]);
+      const I = computeCurrent(V, rTotal);
+      return build(
+        [
+          { label: "R1", value: a, unit: "Ω" },
+          { label: "R2", value: b, unit: "Ω" },
+          { label: "R3", value: c, unit: "Ω" },
+          { label: "R4", value: e, unit: "Ω" },
+          { label: "Battery", value: V, unit: "V" },
+        ],
+        "current",
+        I,
+        "A",
+        [...steps, `Total current: I = V / R_eq = ${V} / ${round2(rTotal)} = ${round2(I)} A.`],
+        `${desc}, and a ${V} V battery drives the network. What total current does the battery supply?`
+      );
+    }
+    return build(
+      [
+        { label: "R1", value: a, unit: "Ω" },
+        { label: "R2", value: b, unit: "Ω" },
+        { label: "R3", value: c, unit: "Ω" },
+        { label: "R4", value: e, unit: "Ω" },
+      ],
+      "rTotal",
+      rTotal,
+      "Ω",
+      steps,
+      `${desc}. What is the equivalent resistance of the whole network?`
+    );
+  }
+
   const r1 = pick(pool);
   const r2 = pick(pool);
   const r3 = pick(pool);
@@ -369,8 +446,8 @@ function genEquivalent(d: Difficulty): Built {
         ...steps,
         `Finally, total current: I = V / R_total = ${V} / ${round2(rTotal)} = ${round2(I)} A.`,
       ],
-      `${desc}. A ${V} V battery drives the network. What is the total current?`,
-      { mode: "series", voltage: V, r1, r2 }
+      `${desc}. A ${V} V battery drives the network. What is the total current?`
+      // No diagram: the 2-resistor template can't depict this mixed network.
     );
   }
 
@@ -384,8 +461,8 @@ function genEquivalent(d: Difficulty): Built {
     rTotal,
     "Ω",
     steps,
-    `${desc}. What is the equivalent resistance of the whole network?`,
-    { mode: "series", voltage: 12, r1, r2 }
+    `${desc}. What is the equivalent resistance of the whole network?`
+    // No diagram: the 2-resistor template can't depict this mixed network.
   );
 }
 
@@ -396,6 +473,33 @@ function genEquivalent(d: Difficulty): Built {
 function genPower(d: Difficulty): Built {
   const rPool = d <= 2 ? [2, 3, 4, 5, 6] : [3, 4, 6, 8, 10, 12];
   const iPool = d <= 2 ? [1, 2, 3] : [1, 2, 3, 4];
+
+  // Level 5: power dissipated in one resistor of a series pair (P = I²R).
+  if (d >= 5) {
+    const r1 = pick([3, 4, 6, 8]);
+    const r2 = pick([2, 4, 5, 6]);
+    const total = r1 + r2;
+    const I = pick([1, 2, 3]);
+    const V = round2(I * total);
+    const p1 = round2(I * I * r1);
+    return build(
+      [
+        { label: "Battery", value: V, unit: "V" },
+        { label: "Resistor 1", value: r1, unit: "Ω" },
+        { label: "Resistor 2", value: r2, unit: "Ω" },
+      ],
+      "power",
+      p1,
+      "W",
+      [
+        `Series total resistance: ${r1} + ${r2} = ${total} Ω.`,
+        `Current (same everywhere in series): I = V / R = ${V} / ${total} = ${I} A.`,
+        `Power in R1: P = I²·R = ${I}² × ${r1} = ${p1} W.`,
+      ],
+      `A ${V} V battery drives a ${r1} Ω and a ${r2} Ω resistor in series. How much power is dissipated in the ${r1} Ω resistor?`
+    );
+  }
+
   const R = pick(rPool);
   const I = pick(iPool);
   const V = round2(R * I);
@@ -448,9 +552,212 @@ function genPower(d: Difficulty): Built {
     P,
     "W",
     ["Power delivered: P = V × I.", `P = ${V} × ${I} = ${round2(P)} W.`],
-    `A device runs at ${V} V and draws ${I} A. What power does it use?`,
-    { mode: "simple", voltage: V, resistance: R }
+    `A device runs at ${V} V and draws ${I} A. What power does it use?`
+    // No diagram: resistance isn't given here, so a resistor label would mislead.
   );
+}
+
+// ---------------------------------------------------------------------------
+// Multiple voltage sources (EMF, internal resistance, KVL)
+// ---------------------------------------------------------------------------
+
+/** Single real battery: find the loop current. */
+function sourcesSingleCurrent(d: Difficulty): Built {
+  const r = pick(d <= 2 ? [1, 2] : [0.5, 1, 2]);
+  const R = pick([4, 5, 6, 8, 10]);
+  const I = pick([1, 2, 3]);
+  const emf = round2(I * (r + R));
+  const cfg: MultiSourceConfig = { arrangement: "single", e1: emf, r1: r, load: R, mask: "current" };
+  return buildMS(
+    [
+      { label: "EMF", value: emf, unit: "V" },
+      { label: "Internal resistance", value: r, unit: "Ω" },
+      { label: "Load resistance", value: R, unit: "Ω" },
+    ],
+    "current",
+    solveMultiSource(cfg).current,
+    "A",
+    [
+      "The internal resistance is in series with the load.",
+      `Total resistance = r + R = ${r} + ${R} = ${round2(r + R)} Ω.`,
+      `I = ε / (r + R) = ${emf} / ${round2(r + R)} = ${I} A.`,
+    ],
+    `A ${emf} V battery has an internal resistance of ${r} Ω and drives a ${R} Ω load. What current flows?`,
+    cfg
+  );
+}
+
+/** Single real battery: find the terminal voltage under load. */
+function sourcesSingleTerminal(d: Difficulty): Built {
+  const r = pick(d <= 2 ? [1, 2] : [0.5, 1, 2]);
+  const R = pick([4, 5, 6, 8]);
+  const I = pick([1, 2, 3]);
+  const emf = round2(I * (r + R));
+  const cfg: MultiSourceConfig = { arrangement: "single", e1: emf, r1: r, load: R, mask: "terminal" };
+  const sol = solveMultiSource(cfg);
+  return buildMS(
+    [
+      { label: "EMF", value: emf, unit: "V" },
+      { label: "Internal resistance", value: r, unit: "Ω" },
+      { label: "Load resistance", value: R, unit: "Ω" },
+    ],
+    "voltage",
+    sol.terminalVoltage,
+    "V",
+    [
+      `Current: I = ε / (r + R) = ${emf} / ${round2(r + R)} = ${I} A.`,
+      `Terminal voltage: V = ε − I·r = ${emf} − ${I}×${r} = ${round2(sol.terminalVoltage)} V.`,
+      `(Equivalently V = I·R = ${I} × ${R} = ${round2(sol.terminalVoltage)} V.)`,
+    ],
+    `A ${emf} V battery with ${r} Ω internal resistance drives a ${R} Ω load. What is the terminal voltage across the load?`,
+    cfg
+  );
+}
+
+/** Two sources in series, aiding. */
+function sourcesSeriesAiding(d: Difficulty, askVoltage = false): Built {
+  const e1 = pick([6, 9, 12]);
+  const e2 = pick([3, 6, 9]);
+  const r1 = d >= 4 ? pick([0.5, 1]) : 0;
+  const r2 = r1;
+  const net = e1 + e2;
+  const I = pick([1, 2, 3]);
+  const R = round2(net / I - (r1 + r2));
+  if (R <= 0) return sourcesSeriesAiding(d, askVoltage);
+  const cfg: MultiSourceConfig = {
+    arrangement: "series-aiding",
+    e1,
+    e2,
+    r1: r1 || undefined,
+    r2: r2 || undefined,
+    load: R,
+    mask: askVoltage ? "terminal" : "current",
+  };
+  const sol = solveMultiSource(cfg);
+  const givens = [
+    { label: "EMF 1", value: e1, unit: "V" },
+    { label: "EMF 2", value: e2, unit: "V" },
+    ...(r1 ? [{ label: "Internal r (each)", value: r1, unit: "Ω" }] : []),
+    { label: "Load resistance", value: R, unit: "Ω" },
+  ];
+  if (askVoltage) {
+    return buildMS(
+      givens,
+      "voltage",
+      sol.terminalVoltage,
+      "V",
+      [
+        `Series-aiding EMFs add: ε = ${e1} + ${e2} = ${net} V.`,
+        `Total resistance = ${r1 ? `${r1} + ${r2} + ` : ""}${R} = ${round2(sol.totalResistance)} Ω.`,
+        `Loop current I = ${net} / ${round2(sol.totalResistance)} = ${round2(sol.current)} A.`,
+        `Voltage across the load = I·R = ${round2(sol.current)} × ${R} = ${round2(sol.terminalVoltage)} V.`,
+      ],
+      `A ${e1} V and a ${e2} V source are in series, aiding${r1 ? `, each with ${r1} Ω internal resistance` : ""}, driving a ${R} Ω load. What is the voltage across the load?`,
+      cfg
+    );
+  }
+  return buildMS(
+    givens,
+    "current",
+    sol.current,
+    "A",
+    [
+      `Series-aiding EMFs add: ε = ${e1} + ${e2} = ${net} V.`,
+      `Total resistance = ${round2(sol.totalResistance)} Ω.`,
+      `I = ε / R_total = ${net} / ${round2(sol.totalResistance)} = ${round2(sol.current)} A.`,
+    ],
+    `A ${e1} V and a ${e2} V source are connected in series, aiding${r1 ? `, each with ${r1} Ω internal resistance` : ""}, across a ${R} Ω load. What current flows?`,
+    cfg
+  );
+}
+
+/** Two sources opposing — the battery-charger case. */
+function sourcesOpposing(): Built {
+  const e2 = pick([6, 9, 12]);
+  const diff = pick([2, 3, 4]);
+  const e1 = e2 + diff;
+  const r1 = pick([0.2, 0.3, 0.5]);
+  const r2 = pick([0.2, 0.3, 0.5]);
+  const I = pick([1, 2, 4]);
+  const R = round2(diff / I - (r1 + r2));
+  if (R <= 0) return sourcesOpposing();
+  const cfg: MultiSourceConfig = {
+    arrangement: "series-opposing",
+    e1,
+    e2,
+    r1,
+    r2,
+    load: R,
+    mask: "current",
+  };
+  const sol = solveMultiSource(cfg);
+  return buildMS(
+    [
+      { label: "Charger EMF", value: e1, unit: "V" },
+      { label: "Battery EMF", value: e2, unit: "V" },
+      { label: "Charger internal r", value: r1, unit: "Ω" },
+      { label: "Battery internal r", value: r2, unit: "Ω" },
+      { label: "Series resistor", value: R, unit: "Ω" },
+    ],
+    "current",
+    sol.current,
+    "A",
+    [
+      `Opposing EMFs subtract: ε_net = ${e1} − ${e2} = ${diff} V.`,
+      `Total resistance = ${r1} + ${r2} + ${R} = ${round2(sol.totalResistance)} Ω.`,
+      `I = ε_net / R_total = ${diff} / ${round2(sol.totalResistance)} = ${round2(sol.current)} A.`,
+    ],
+    `A ${e1} V charger (r = ${r1} Ω) opposes a ${e2} V battery (r = ${r2} Ω) through a ${R} Ω resistor. What charging current flows?`,
+    cfg
+  );
+}
+
+/** Identical sources in parallel driving a load. */
+function sourcesParallel(): Built {
+  const emf = pick([6, 12, 24]);
+  const r = pick([2, 4]);
+  const req = r / 2;
+  const I = pick([1, 2, 3]);
+  const R = round2(emf / I - req);
+  if (R <= 0) return sourcesParallel();
+  const cfg: MultiSourceConfig = {
+    arrangement: "parallel",
+    e1: emf,
+    e2: emf,
+    r1: r,
+    r2: r,
+    load: R,
+    mask: "current",
+  };
+  const sol = solveMultiSource(cfg);
+  return buildMS(
+    [
+      { label: "EMF (each cell)", value: emf, unit: "V" },
+      { label: "Internal r (cell 1)", value: r, unit: "Ω" },
+      { label: "Internal r (cell 2)", value: r, unit: "Ω" },
+      { label: "Load resistance", value: R, unit: "Ω" },
+    ],
+    "current",
+    sol.current,
+    "A",
+    [
+      "Identical parallel cells keep the same EMF but their internal resistances combine in parallel.",
+      `r_eq = (${r} × ${r}) / (${r} + ${r}) = ${req} Ω.`,
+      `Total resistance = r_eq + R = ${req} + ${R} = ${round2(sol.totalResistance)} Ω.`,
+      `I = ε / R_total = ${emf} / ${round2(sol.totalResistance)} = ${round2(sol.current)} A.`,
+    ],
+    `Two identical ${emf} V cells, each with ${r} Ω internal resistance, are in parallel driving a ${R} Ω load. What current flows through the load?`,
+    cfg
+  );
+}
+
+function genSources(d: Difficulty): Built {
+  if (d <= 1) return sourcesSingleCurrent(d);
+  if (d === 2) return Math.random() < 0.5 ? sourcesSingleCurrent(d) : sourcesSingleTerminal(d);
+  if (d === 3) return Math.random() < 0.5 ? sourcesSeriesAiding(d) : sourcesSingleTerminal(d);
+  if (d === 4) return pick([sourcesOpposing, sourcesParallel, () => sourcesSeriesAiding(d)])();
+  // d === 5: full KVL synthesis with internal resistance.
+  return pick([() => sourcesSeriesAiding(d, true), sourcesOpposing, sourcesParallel])();
 }
 
 const GENERATORS: Record<PracticeTopic, (d: Difficulty) => Built> = {
@@ -459,9 +766,10 @@ const GENERATORS: Record<PracticeTopic, (d: Difficulty) => Built> = {
   parallel: genParallel,
   equivalent: genEquivalent,
   power: genPower,
+  sources: genSources,
   mixed: (d) => {
     const topics: PracticeTopic[] = ["ohms", "series", "parallel", "power"];
-    if (d >= 3) topics.push("equivalent");
+    if (d >= 3) topics.push("equivalent", "sources");
     return GENERATORS[pick(topics)](d);
   },
 };

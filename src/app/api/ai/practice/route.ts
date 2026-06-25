@@ -14,6 +14,7 @@ const VALID_TOPICS = new Set<PracticeTopic>([
   "parallel",
   "equivalent",
   "power",
+  "sources",
   "mixed",
 ]);
 

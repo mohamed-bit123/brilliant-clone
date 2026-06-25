@@ -13,6 +13,9 @@ type CircuitVisualProps = {
   /** Hide computed values the learner is solving for in calc steps */
   maskSolveFor?: "current" | "voltage" | "resistance" | "power" | "rTotal" | "branchCurrent";
   maskBranchIndex?: 1 | 2;
+  /** Quiz mode: hide the computed metrics panel and branch readouts so the
+   *  diagram can't reveal the answer. Used by practice/calc questions. */
+  quiz?: boolean;
 };
 
 export function CircuitVisual({
@@ -25,6 +28,7 @@ export function CircuitVisual({
   compact = false,
   maskSolveFor,
   maskBranchIndex = 1,
+  quiz = false,
 }: CircuitVisualProps) {
   const current = computeCurrent(voltage, resistance);
   const power = computePower(voltage, current);
@@ -138,9 +142,11 @@ export function CircuitVisual({
             />
             <Resistor x={145} y={42} label={`R₁ ${branch1R.toFixed(1)}Ω`} width={45} labelBelow />
             <Wire x1={190} y1={55} x2={270} y2={55} />
-            <text x={198} y={48} fill="#7dd3fc" fontSize="10" fontWeight="bold">
-              I₁={hideCurrent && (maskSolveFor !== "branchCurrent" || maskBranchIndex === 1) ? "?" : i1.toFixed(2)}A
-            </text>
+            {!quiz && (
+              <text x={198} y={48} fill="#7dd3fc" fontSize="10" fontWeight="bold">
+                I₁={hideCurrent && (maskSolveFor !== "branchCurrent" || maskBranchIndex === 1) ? "?" : i1.toFixed(2)}A
+              </text>
+            )}
 
             {/* Branch B (bottom) */}
             <text x={14} y={158} fill="#c084fc" fontSize="11" fontWeight="bold">
@@ -156,9 +162,11 @@ export function CircuitVisual({
             />
             <Resistor x={145} y={142} label={`R₂ ${branch2R.toFixed(1)}Ω`} width={45} labelBelow />
             <Wire x1={190} y1={155} x2={270} y2={155} />
-            <text x={198} y={148} fill="#d8b4fe" fontSize="10" fontWeight="bold">
-              I₂={hideCurrent && maskSolveFor === "branchCurrent" && maskBranchIndex === 2 ? "?" : i2.toFixed(2)}A
-            </text>
+            {!quiz && (
+              <text x={198} y={148} fill="#d8b4fe" fontSize="10" fontWeight="bold">
+                I₂={hideCurrent && maskSolveFor === "branchCurrent" && maskBranchIndex === 2 ? "?" : i2.toFixed(2)}A
+              </text>
+            )}
 
             {/* Rejoin → bulb → return to battery */}
             <Wire x1={270} y1={55} x2={270} y2={155} />
@@ -189,7 +197,7 @@ export function CircuitVisual({
         )}
       </svg>
 
-      {mode === "parallel" ? (
+      {quiz ? null : mode === "parallel" ? (
         <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4">
           <Metric
             label="Voltage (both branches)"

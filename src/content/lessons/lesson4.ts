@@ -100,20 +100,20 @@ export const lesson4: Lesson = {
     {
       id: "l4-s4",
       type: "challenge",
-      title: "Hit 2A Total",
+      title: "Hit 3A Total",
       prompt:
-        "Configure a parallel circuit (12V) so total current is 2A (±0.1A). R_total must equal 6Ω.",
+        "Configure a parallel circuit (12V) so total current is 3A (±0.1A). That means the equivalent resistance must be R_eq = V / I = 4Ω.",
       interaction: {
         kind: "circuit-config",
         mode: "parallel",
         fixedVoltage: 12,
-        targetCurrent: 2,
+        targetCurrent: 3,
         tolerance: 0.1,
       },
       feedback: {
-        correct: "R_eq = 6Ω confirmed. You can simplify any circuit this way.",
-        incorrect: "R_eq = V / I = 12 / 2 = 6Ω.",
-        hint: "Set branch resistances so 1/R₁ + 1/R₂ = 1/6.",
+        correct: "R_eq = 4Ω confirmed. Two parallel branches always combine below the smaller one.",
+        incorrect: "R_eq = V / I = 12 / 3 = 4Ω.",
+        hint: "Two equal 8Ω branches give 8 ∥ 8 = 4Ω. (Any pair with 1/R₁ + 1/R₂ = 1/4 works.)",
       },
     },
     {

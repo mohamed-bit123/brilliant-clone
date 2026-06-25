@@ -12,6 +12,7 @@ export type PracticeTopic =
   | "parallel"
   | "equivalent"
   | "power"
+  | "sources"
   | "mixed";
 
 /** Difficulty tier. 1 = single-step recall, 5 = multi-step synthesis. */
@@ -24,6 +25,7 @@ export const LESSON_TOPIC: Record<string, PracticeTopic> = {
   "lesson-3": "parallel",
   "lesson-4": "equivalent",
   "lesson-5": "power",
+  "lesson-7": "sources",
   "lesson-6": "mixed",
 };
 
@@ -33,6 +35,7 @@ export const TOPIC_LABEL: Record<PracticeTopic, string> = {
   parallel: "Parallel Circuits",
   equivalent: "Equivalent Resistance",
   power: "Power & Energy",
+  sources: "Multiple Voltage Sources",
   mixed: "Mixed Challenge",
 };
 

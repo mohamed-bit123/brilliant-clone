@@ -135,6 +135,7 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
               topic={topic}
               questionPrompt={problem.prompt}
               stepTitle={problem.title}
+              quizVisual
             />
           </div>
         )}

@@ -44,7 +44,7 @@ Build in strict order. Each phase must stand on its own before the next begins.
 
 ## Depth Over Breadth
 
-This course contains **six lessons** that build on each other in one subject—not a shallow tour of many topics. A learner who starts knowing little should finish understanding something real: how simple circuits behave, how to combine resistors, and how to reason about power and energy.
+This course contains **seven lessons** that build on each other in one subject—not a shallow tour of many topics. A learner who starts knowing little should finish understanding something real: how simple circuits behave, how to combine resistors, how to reason about power and energy, and how real batteries and multiple voltage sources behave.
 
 Each lesson is short (a few minutes), interactive, and ends with a sense of accomplishment. Breadth is easy and forgettable. Depth is what makes Brilliant Brilliant.
 
@@ -76,7 +76,7 @@ This is a hard gate with a hard rule: **no AI features in the MVP.** No model ca
 
 ## MVP Scope
 
-The MVP requires **one complete, hand-built interactive lesson** (Lesson 1) that actually teaches without AI. The full course path of six lessons is designed in this PRD and built out across Phase 1; Lesson 1 is the gate that must pass first.
+The MVP requires **one complete, hand-built interactive lesson** (Lesson 1) that actually teaches without AI. The full course path is designed in this PRD and built out across Phase 1 (six lessons) plus a Phase 2 multi-source lesson; Lesson 1 is the gate that must pass first.
 
 ## MVP Pass Criteria
 
@@ -114,7 +114,7 @@ These are reserved for Phase 2.
 
 ## Course: Circuits Fundamentals
 
-Six lessons in a clear learning path. Each lesson is a short sequence of interactive steps: introduce an idea, make the learner do something with it, give instant feedback. Wrong answers get a hint or explanation, not just a red X.
+Seven lessons in a clear learning path. Each lesson is a short sequence of interactive steps: introduce an idea, make the learner do something with it, give instant feedback. Wrong answers get a hint or explanation, not just a red X.
 
 | # | Lesson | Status | Core Concept |
 | - | ------ | ------ | ------------ |
@@ -123,7 +123,8 @@ Six lessons in a clear learning path. Each lesson is a short sequence of interac
 | 3 | Parallel Circuits | Phase 1 | Current splits; voltage is shared |
 | 4 | Equivalent Resistance | Phase 1 | Combining series and parallel into one value |
 | 5 | Power and Energy | Phase 1 | P = IV, heat, and bulb brightness |
-| 6 | Circuit Challenge Lab | Phase 1 | Multi-step design puzzles using everything learned |
+| 6 | Multiple Voltage Sources | Phase 2 | EMF vs. terminal voltage, internal resistance, sources in series/parallel, Kirchhoff's voltage law |
+| 7 | Circuit Challenge Lab | Phase 1 | Multi-step design puzzles using everything learned |
 
 ### Learning Path
 
@@ -138,7 +139,9 @@ Lesson 4: Equivalent Resistance
     ↓
 Lesson 5: Power and Energy
     ↓
-Lesson 6: Circuit Challenge Lab
+Lesson 6: Multiple Voltage Sources
+    ↓
+Lesson 7: Circuit Challenge Lab
 ```
 
 Lessons unlock sequentially based on mastery. When a learner gets something wrong repeatedly, surface a review step or an easier problem before advancing.
@@ -154,7 +157,7 @@ Lessons unlock sequentially based on mastery. When a learner gets something wron
 5. User receives instant feedback after each interaction
 6. User leaves mid-lesson and returns later without losing progress
 7. User completes a lesson, sees mastery progress, streak update, and next recommended lesson
-8. User continues through the six-lesson path
+8. User continues through the seven-lesson path
 
 ---
 
@@ -450,7 +453,42 @@ Slider manipulation, prediction MCQ, match-pairs, target-configuration challenge
 
 ---
 
-# Lesson 6: Circuit Challenge Lab
+# Lesson 6: Multiple Voltage Sources
+
+## Learning Objective
+
+Learners move from idealized batteries to real ones: every source has an EMF (ε) and an internal resistance (r), so the **terminal voltage** under load is V = ε − I·r. They then combine sources—series-aiding (EMFs add), series-opposing (EMFs subtract, e.g. battery charging), and identical cells in parallel (same EMF, lower internal resistance)—and unify everything with Kirchhoff's voltage law (Σε = ΣI·R). Multiple sources are the topic learners most often find confusing, so this lesson is deliberately step-by-step.
+
+Physics is grounded in OpenStax *University Physics Vol. 2*, Ch. 10 (CC-licensed).
+
+## Key Interactions
+
+* **Concept + schematic:** A dedicated multi-source diagram (`MultiSourceVisual`) draws one or two EMF sources with internal resistances and a load, showing net EMF, loop current, and terminal voltage
+* **Calculate:** Terminal voltage under load, current from series-aiding cells, charging current from opposing sources, current through identical parallel cells
+* **KVL synthesis:** A final multi-step problem combining EMFs, internal resistance, and a load
+
+## Steps (Summary)
+
+1. Concept — EMF vs. terminal voltage; the V = ε − I·r model
+2. Prediction — When does terminal voltage equal the full EMF? (no current)
+3. Calculate — Current and terminal voltage for a single real battery
+4. Concept — Series-aiding sources: EMFs and internal resistances add
+5. Calculate — Current from two series cells
+6. Concept — Opposing sources and battery charging
+7. Calculate — Charging current from opposing EMFs
+8. Concept — Identical sources in parallel: same EMF, lower r
+9. Calculate — Load current with parallel cells
+10. Concept — Kirchhoff's voltage law as the unifying rule
+11. Calculate — Full KVL problem (EMFs + internal resistance + load)
+12. Mastery check — Net EMF, terminal voltage, and charging current
+
+## Problem Types
+
+Concept walk-throughs with multi-source schematics, numeric calculation steps (grounded + engine-verified), prediction MCQ, mastery check. The **"Practice more"** mode for this lesson drills the `sources` topic, escalating from a single real battery to KVL synthesis with internal resistance.
+
+---
+
+# Lesson 7: Circuit Challenge Lab
 
 ## Learning Objective
 
@@ -515,7 +553,7 @@ Drag components onto a canvas, connect in series or parallel, simulate the resul
 
 # Content Model
 
-Lessons are a sequence of interactive steps (concept, problem, feedback)—not a blob of HTML. This lets new lessons be added fast and, in Phase 2, potentially AI-generated.
+Lessons are a sequence of interactive steps (concept, problem, feedback)—not a blob of HTML. This lets new lessons be added fast and, as of Phase 2, lets practice problems be AI-generated and engine-verified through the same `numeric-calc` step type. The shipped model has grown beyond the illustrative types below to include `concept`, `numeric-calc`, `graph`, `discover-table`, `dual-slider`, `series-sliders`, `parallel-sliders`, and `circuit-config` interactions.
 
 ```typescript
 type Lesson = {
@@ -607,7 +645,7 @@ Lesson Progress
 ██████░░░░ 60%
 
 Course Progress
-██░░░░░░░░ 2/6 Lessons
+██░░░░░░░░ 2/7 Lessons
 ```
 
 ## Completion Reward
@@ -626,7 +664,7 @@ Series Circuits
 * First lesson complete
 * 3-day streak
 * Half the course (Lesson 3)
-* Course complete (Lesson 6)
+* Course complete (Lesson 7)
 
 ---
 
@@ -655,6 +693,13 @@ Progress, streaks, and history survive across sessions and devices.
 | Progress | Per-lesson step progress and completion |
 | Mastery | Mastery scores per lesson |
 | Streaks | Last active date, streak count |
+
+## Security Hardening
+
+* **Row Level Security** on every Supabase table (`auth.uid() = user_id`): a user can only read or write their own progress, profile, and streaks. Other users' data is unreachable.
+* **HTTP security headers** set in `next.config.ts` for all routes: Content-Security-Policy (allowing Supabase + the AI route handlers), HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, Referrer-Policy, and Permissions-Policy.
+* **Secrets stay server-side.** The Supabase anon key is public by design (protected by RLS); the AI provider key is a server-only env var used exclusively in route handlers and never inlined into the client bundle.
+* **Known accepted limitation:** answer-checking and lesson unlocking run client-side, so a determined user can self-cheat their own account (read answers, mark lessons complete). RLS contains the blast radius to that one account. Acceptable for a free, self-paced tool; would move to server-side validation if grades/certificates are ever added.
 
 ---
 
@@ -710,17 +755,76 @@ We test on the deployed app. A reviewer should be able to:
 
 ---
 
+# Phase 2: AI Features (Shipped)
+
+Phase 2 adds AI **only where it deepens learning**, built as additions on top of the MVP. The hard rule holds: the app teaches fully with AI turned off. Every AI feature is grounded in the lesson's structured state, and the deterministic circuit engine (`src/lib/types.ts`) is the single source of truth for every number—the model only ever produces language, so it can never present a wrong answer.
+
+Full decision record (what was considered, shipped, and deliberately cut): see [BRAINLIFT.md](./BRAINLIFT.md).
+
+## What Shipped
+
+### 1. Adaptive Practice ("Practice more")
+
+Each lesson gains an optional practice mode that generates an endless stream of problems that get harder as the learner succeeds. The fixed lessons are unchanged; this is purely additional review.
+
+* The engine authors every problem and answer across five difficulty tiers per topic (Ohm's law, series, parallel, equivalent resistance, power, multiple voltage sources, mixed), building problems backward from clean operands so answers stay tidy.
+* The top tiers reach **university-introductory rigor**: four-resistor ladder networks, power dissipated in an individual series resistor (P = I²R), battery charging with opposing EMFs, parallel cells with combined internal resistance, and full Kirchhoff's-voltage-law synthesis with internal resistance.
+* Difficulty escalates on a clean solve and eases off after a struggle—the useful core of "adapt the path," without reordering the linear course.
+* When AI is on, the model adds real-world scenario framing only; a verifier confirms every given number survived, otherwise the engine's own wording is used.
+* Entry points: lesson completion screen, lesson sidebar, and each unlocked course card.
+
+### 2. Smart Hints
+
+When a learner misses a calculation step, an optional grounded hint nudges the next reasoning step.
+
+* The model receives structured context (givens, target, verified answer, worked method).
+* A guardrail discards any hint that leaks the answer; with AI off it falls back to the hand-written `feedback.hint`.
+
+### 3. Explain My Mistake
+
+A wrong numeric answer is diagnosed and explained in plain language, tuned to what the learner actually did.
+
+* A deterministic misconception classifier reproduces common wrong computations (multiplied instead of divided, used one resistor, treated parallel as series, stopped at current for a power question, etc.) and matches the learner's actual answer.
+* The model only rephrases that diagnosis; with AI off the deterministic explanation is shown directly.
+
+## Course Expansion: Multiple Voltage Sources (Lesson 6)
+
+Phase 2 also added a new hand-built lesson on the topic learners most often find confusing—**multiple voltage sources**. It introduces EMF vs. terminal voltage, internal resistance (V = ε − I·r), series-aiding and opposing sources (battery charging), identical cells in parallel, and Kirchhoff's voltage law. A dedicated `MultiSourceVisual` component renders one- and two-source loops with internal resistances and a load. The lesson maps to the new `sources` practice topic so learners can drill it to university-introductory difficulty. Physics is grounded in OpenStax *University Physics Vol. 2*, Ch. 10.
+
+## What Was Deliberately Cut
+
+* **Lesson-path adaptation / next-lesson selection** — the course is a short, strictly linear chain with hard prerequisites; the useful sliver is folded into adaptive-practice difficulty.
+* **Unequal-EMF parallel sources & general multi-loop mesh analysis** — these require simultaneous-equation solving that exceeds an intro single-loop treatment; the lesson and generator stay within one-loop KVL and identical-EMF parallel cells.
+* **General chatbot tutor** — ungrounded and invites hallucinated physics.
+* **AI on MCQ/interactive steps** — v1 focuses AI on numeric steps and practice, where verification is crispest.
+
+## AI Architecture
+
+* **Provider-agnostic** (`src/lib/ai/provider.ts`): Gemini by default (`gemini-2.5-flash`); set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to switch to Claude with no code changes.
+* **Server-only keys.** All AI runs in Next.js route handlers under `src/app/api/ai/` (`status`, `hint`, `explain`, `practice`). The key is never `NEXT_PUBLIC_` and never reaches the client bundle; the client checks `GET /api/ai/status` to decide whether to show AI affordances.
+* **No external math engine needed.** Circuit math is exact closed-form arithmetic, not symbolic algebra; the domain-specific verified engine both generates and checks every value—stronger and simpler than delegating arithmetic to a general CAS.
+
+## Grounding & Verification Guarantees
+
+* AI inputs are typed JSON built from interaction configs and the engine—never raw lesson prose.
+* Every practice answer is computed and tolerance-checked by the engine.
+* Hints and explanations pass a leak guardrail before display.
+* With no API key configured, all three features degrade to a fully-working, verified non-AI experience.
+
+## Phase 2 Delivered Checklist
+
+- [x] At least one genuinely useful AI feature, grounded in structured lesson state
+- [x] Math verified against the subject's logic (deterministic circuit engine)
+- [x] MVP still works with AI turned off (additions, not replacements)
+- [x] Decision documented in the Brainlift (considered / shipped / cut)
+
+---
+
 # Future Phases
 
-## Phase 2: AI Features (Friday)
+## Phase 2: AI Features (Friday) — ✅ Shipped
 
-Decide what AI should do here, then build it. Candidates:
-
-* Personalized hints based on mistake patterns
-* Adaptive remediation when a learner is stuck
-* AI-generated practice problems within the circuit domain
-
-The MVP must already teach effectively without any of this.
+Delivered three grounded, verifiable AI features: adaptive practice generation, smart hints, and "explain my mistake." All are additive and the MVP teaches fully with AI off. See the **Phase 2: AI Features (Shipped)** section above and [BRAINLIFT.md](./BRAINLIFT.md) for the full decision record.
 
 ## Phase 3: Learning Science (Sunday)
 

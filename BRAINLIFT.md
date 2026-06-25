@@ -25,7 +25,7 @@ learning, and only as additions that the app keeps working without.
 | Generate new practice problems at the right difficulty | **Shipped (#3)** | The subject is perfectly parametric and the engine guarantees correctness. Highest "course never runs dry" value. The user also ranked this #1. |
 | Targeted hint when stuck (no answer) | **Shipped (#2)** | We already track per-step attempts; structured state + a leak guardrail make this safe and high-value. |
 | Explain a wrong answer, tuned to what the learner did | **Shipped (#1)** | A deterministic misconception classifier diagnoses the *specific* error; the model only phrases it. Highest pedagogical value. |
-| Adapt the path / pick the next lesson | **Deliberately cut** | The course is a short, strictly linear 6-lesson chain with hard prerequisites (you can't teach parallel before Ohm's law). There's almost nothing to reorder. The *useful* sliver — escalate when the learner is succeeding — is folded into the adaptive difficulty of #3. |
+| Adapt the path / pick the next lesson | **Deliberately cut** | The course is a short, strictly linear chain with hard prerequisites (you can't teach parallel before Ohm's law). There's almost nothing to reorder. The *useful* sliver — escalate when the learner is succeeding — is folded into the adaptive difficulty of #3. |
 | General chatbot | **Deliberately cut** | Ungrounded, invites hallucinated physics. Explicitly avoided. |
 
 ## What we shipped
@@ -55,11 +55,17 @@ All three features share one backbone:
   screen, the lesson sidebar, and each unlocked course card).
 - The **engine authors the problem**: `src/lib/ai/practice.ts` generates verified,
   clean problems per topic (Ohm's law, series, parallel, equivalent resistance,
-  power, mixed) across five difficulty tiers, building problems "backward" from
-  clean operands so answers stay tidy.
+  power, multiple voltage sources, mixed) across five difficulty tiers, building
+  problems "backward" from clean operands so answers stay tidy.
 - Difficulty **escalates on a clean solve and eases off after a struggle**, so it
   gets "harder and harder" as the learner succeeds — this is the absorbed part of
   the adaptive-path idea.
+- The **top tiers reach university-introductory rigor** (in response to feedback
+  that the easy questions don't build real mastery): four-resistor ladder
+  networks, power dissipated in an individual series resistor (P = I²R), battery
+  charging with opposing EMFs, parallel cells with combined internal resistance,
+  and full Kirchhoff's-voltage-law synthesis. Early tiers stay gentle so the ramp
+  is real.
 - When AI is on, the model only adds a **real-world scenario / rewording**; a
   verifier (`scenarioPreservesNumbers`) confirms every original number survived,
   otherwise the engine's wording is kept. The numbers and answer always come from
@@ -87,12 +93,25 @@ All three features share one backbone:
   mathematical and verification is crisp.
 - Lesson reordering / path adaptation (see table above).
 - A free-form chat tutor.
-- Multiple voltage sources / more advanced topics — noted as a future *content*
-  extension (new lessons), not an AI feature.
+- Unequal-EMF parallel sources and general multi-loop mesh analysis — these need
+  simultaneous-equation solving beyond an intro single-loop treatment; the new
+  lesson and its generator stay within one-loop KVL and identical parallel cells.
+
+## Content expansion shipped alongside Phase 2
+
+- **Lesson 6 — Multiple Voltage Sources** (the topic learners find most
+  confusing): EMF vs. terminal voltage, internal resistance (V = ε − I·r),
+  series-aiding/opposing sources (battery charging), identical parallel cells,
+  and Kirchhoff's voltage law. A new `MultiSourceVisual` component draws one-
+  and two-source loops; `solveMultiSource` in `types.ts` is the verified engine
+  for this topic and powers the new `sources` practice generator. Physics is
+  grounded in OpenStax *University Physics Vol. 2*, Ch. 10 (CC-licensed) rather
+  than any copyrighted textbook.
 
 ## Future ideas
 
 - Extend grounded hints to MCQ/interactive steps.
-- New lessons for multiple voltage sources and internal resistance (content, not AI).
+- Unequal-EMF parallel sources and multi-loop mesh analysis (would need a small
+  linear-system solver added to the engine).
 - Spaced-repetition review that resurfaces a learner's historically-missed topics
   (keys off `stepResults`, which we already persist).
