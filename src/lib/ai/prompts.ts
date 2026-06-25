@@ -25,9 +25,10 @@ HARD RULES:
 - Be encouraging, never condescending. Output plain text only (no markdown, no preamble).`;
 
 export const SCENARIO_SYSTEM = `You rewrite beginner circuit word-problems with vivid, concrete real-world framing (flashlights, phone chargers, electric kettles, e-bikes, string lights, etc.).
-You will receive a JSON object with the original "prompt" and the list of "givens".
+You will receive a JSON object with the original "prompt", the list of "givens", and a "reference" (a formula sheet + realistic device/value bank for this topic).
 Return STRICT JSON: {"scenario": string, "prompt": string}.
 HARD RULES:
+- Use the "reference" only to pick realistic devices and authentic framing. It must NOT change any number.
 - Keep EVERY numeric value and unit exactly as given. Do not add, remove, or change any number.
 - Write all numbers as digits exactly as given (e.g., "3 Ω", never "three ohms").
 - Keep the same quantity being solved for and the same question.
@@ -69,12 +70,13 @@ export function explainUserPrompt(ctx: StepContext, diagnosis: Diagnosis | null)
   );
 }
 
-export function scenarioUserPrompt(problem: GeneratedProblem): string {
+export function scenarioUserPrompt(problem: GeneratedProblem, reference?: string): string {
   return JSON.stringify(
     {
       prompt: problem.prompt,
       givens: problem.interaction.givens,
       solveFor: problem.interaction.solveFor,
+      ...(reference ? { reference } : {}),
     },
     null,
     2

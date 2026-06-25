@@ -1,13 +1,18 @@
 import {
   computeCurrent,
   computePower,
-  parallelResistance,
   seriesResistance,
   solveMultiSource,
   type CircuitPreview,
   type InteractionConfig,
   type MultiSourceConfig,
 } from "@/lib/types";
+import {
+  reductionSteps,
+  solveNetwork,
+  type NetworkNode,
+  type NetworkSpec,
+} from "@/lib/network";
 import type {
   Difficulty,
   GeneratedProblem,
@@ -102,6 +107,32 @@ function buildMS(
       tolerance: toleranceFor(rounded),
       answerUnit,
       multiSourcePreview: multiSource,
+    },
+    solution: { answer: rounded, unit: answerUnit, steps },
+  };
+}
+
+/** Like build(), but attaches a series-parallel network diagram. */
+function buildNet(
+  spec: NetworkSpec,
+  givens: { label: string; value: number; unit: string }[],
+  solveFor: NumericInteraction["solveFor"],
+  answer: number,
+  answerUnit: string,
+  steps: string[],
+  prompt: string
+): Built {
+  const rounded = round2(answer);
+  return {
+    prompt,
+    interaction: {
+      kind: "numeric-calc",
+      givens,
+      solveFor,
+      correctAnswer: rounded,
+      tolerance: toleranceFor(rounded),
+      answerUnit,
+      networkPreview: spec,
     },
     solution: { answer: rounded, unit: answerUnit, steps },
   };
@@ -352,117 +383,219 @@ function genParallel(d: Difficulty): Built {
 }
 
 // ---------------------------------------------------------------------------
-// Equivalent resistance (mixed series + parallel)
+// Equivalent resistance & complex series-parallel networks
+//
+// These are the genuinely harder problems: real multi-resistor topologies
+// (e.g. a parallel pair whose combined current then flows through another
+// resistor) rendered as an actual schematic, with multi-step questions that
+// ask for a branch current, a node voltage, or power deep inside the network.
 // ---------------------------------------------------------------------------
 
-function genEquivalent(d: Difficulty): Built {
-  const pool = [2, 3, 4, 6, 8, 12];
+const NICE_PAIRS: [number, number][] = [
+  [6, 3], [6, 12], [4, 4], [8, 8], [2, 2], [3, 6],
+  [10, 10], [12, 4], [12, 6], [20, 5], [6, 6], [4, 12],
+];
 
-  // Level 5: a four-resistor ladder — two series pairs combined in parallel.
-  if (d >= 5) {
-    const a = pick(pool);
-    const b = pick(pool);
-    const c = pick(pool);
-    const e = pick(pool);
-    const top = seriesResistance(a, b);
-    const bottom = seriesResistance(c, e);
-    const rTotal = parallelResistance(top, bottom);
-    const desc = `R1 (${a} Ω) and R2 (${b} Ω) are in series in one branch; R3 (${c} Ω) and R4 (${e} Ω) are in series in a second branch; the two branches are in parallel`;
-    const steps = [
-      `Top branch (series): ${a} + ${b} = ${top} Ω.`,
-      `Bottom branch (series): ${c} + ${e} = ${bottom} Ω.`,
-      `The branches are in parallel: (${top} × ${bottom}) / (${top} + ${bottom}) = ${round2(rTotal)} Ω.`,
-    ];
-    if (Math.random() < 0.5) {
-      const V = pick([12, 24, 36, 48]);
-      const I = computeCurrent(V, rTotal);
-      return build(
-        [
-          { label: "R1", value: a, unit: "Ω" },
-          { label: "R2", value: b, unit: "Ω" },
-          { label: "R3", value: c, unit: "Ω" },
-          { label: "R4", value: e, unit: "Ω" },
-          { label: "Battery", value: V, unit: "V" },
-        ],
-        "current",
-        I,
-        "A",
-        [...steps, `Total current: I = V / R_eq = ${V} / ${round2(rTotal)} = ${round2(I)} A.`],
-        `${desc}, and a ${V} V battery drives the network. What total current does the battery supply?`
-      );
-    }
-    return build(
-      [
-        { label: "R1", value: a, unit: "Ω" },
-        { label: "R2", value: b, unit: "Ω" },
-        { label: "R3", value: c, unit: "Ω" },
-        { label: "R4", value: e, unit: "Ω" },
-      ],
+function nicePair(): [number, number] {
+  return pick(NICE_PAIRS);
+}
+
+function res(label: string, ohms: number): NetworkNode {
+  return { kind: "resistor", label, ohms };
+}
+function ser(...parts: NetworkNode[]): NetworkNode {
+  return { kind: "series", parts };
+}
+function par(...parts: NetworkNode[]): NetworkNode {
+  return { kind: "parallel", parts };
+}
+
+const S1 = "R₁";
+const S2 = "R₂";
+const S3 = "R₃";
+const S4 = "R₄";
+const S5 = "R₅";
+
+function collectResistors(node: NetworkNode): { label: string; ohms: number }[] {
+  if (node.kind === "resistor") return [{ label: node.label, ohms: node.ohms }];
+  return node.parts.flatMap(collectResistors);
+}
+
+/** Returns each archetype as a spec along with which resistors sit in a parallel branch. */
+function buildArchetype(d: Difficulty): NetworkSpec {
+  const small = [2, 3, 4, 5, 6, 8];
+
+  // d<=2: parallel pair fed in series by a third resistor (the canonical case).
+  if (d <= 2) {
+    const [a, b] = nicePair();
+    const c = pick(small);
+    const root =
+      Math.random() < 0.5
+        ? ser(par(res(S1, a), res(S2, b)), res(S3, c)) // P(R1,R2) then R3
+        : ser(res(S1, c), par(res(S2, a), res(S3, b))); // R1 then P(R2,R3)
+    return { voltage: pick([12, 24, 36]), root };
+  }
+
+  // d==3: source → series resistor → parallel pair → out (lead-in + parallel).
+  if (d === 3) {
+    const [a, b] = nicePair();
+    const c = pick(small);
+    const root = ser(res(S1, c), par(res(S2, a), res(S3, b)));
+    return { voltage: pick([12, 24, 36, 48]), root };
+  }
+
+  // d==4: sandwich — series resistor, a parallel pair, then another series resistor.
+  if (d === 4) {
+    const [a, b] = nicePair();
+    const c = pick(small);
+    const e = pick(small);
+    const root = ser(res(S1, c), par(res(S2, a), res(S3, b)), res(S4, e));
+    return { voltage: pick([24, 36, 48]), root };
+  }
+
+  // d==5: a two-branch ladder (each branch a series pair) fed through a resistor.
+  const [a, b] = nicePair();
+  const [c, e] = nicePair();
+  const lead = pick([1, 2, 3]);
+  const root = ser(
+    res(S1, lead),
+    par(ser(res(S2, a), res(S3, b)), ser(res(S4, c), res(S5, e)))
+  );
+  return { voltage: pick([24, 36, 48]), root };
+}
+
+/** Picks a resistor whose current differs from the total (i.e. inside a parallel split). */
+function pickBranchResistor(
+  spec: NetworkSpec
+): { label: string; ohms: number } | null {
+  const sol = solveNetwork(spec);
+  const candidates = collectResistors(spec.root).filter(
+    (r) => Math.abs(sol.readings[r.label].current - sol.totalCurrent) > 1e-6
+  );
+  return candidates.length ? pick(candidates) : null;
+}
+
+function networkGivens(spec: NetworkSpec, includeBattery: boolean) {
+  const givens = collectResistors(spec.root).map((r) => ({
+    label: r.label,
+    value: r.ohms,
+    unit: "Ω",
+  }));
+  if (includeBattery) {
+    givens.unshift({ label: "Battery", value: spec.voltage, unit: "V" });
+  }
+  return givens;
+}
+
+function genEquivalent(d: Difficulty): Built {
+  const spec = buildArchetype(d);
+  const sol = solveNetwork(spec);
+  const req = round2(sol.equivalentResistance);
+  const red = reductionSteps(spec.root);
+  const V = spec.voltage;
+  const totalI = round2(sol.totalCurrent);
+
+  // Choose a question appropriate to the difficulty.
+  type Kind = "rTotal" | "current" | "branchCurrent" | "voltage" | "power";
+  let kind: Kind;
+  if (d <= 1) kind = "rTotal";
+  else if (d === 2) kind = pick(["rTotal", "current"] as const);
+  else if (d === 3) kind = pick(["current", "branchCurrent", "voltage"] as const);
+  else if (d === 4) kind = pick(["branchCurrent", "voltage", "power"] as const);
+  else kind = pick(["branchCurrent", "power"] as const);
+
+  if (kind === "rTotal") {
+    return buildNet(
+      spec,
+      networkGivens(spec, false),
       "rTotal",
-      rTotal,
+      req,
       "Ω",
-      steps,
-      `${desc}. What is the equivalent resistance of the whole network?`
+      red.steps,
+      `For the network shown, what is the equivalent resistance seen by the battery?`
     );
   }
 
-  const r1 = pick(pool);
-  const r2 = pick(pool);
-  const r3 = pick(pool);
-
-  const seriesFirst = Math.random() < 0.5;
-  const rTotal = seriesFirst
-    ? parallelResistance(seriesResistance(r1, r2), r3)
-    : seriesResistance(parallelResistance(r1, r2), r3);
-
-  const desc = seriesFirst
-    ? `R1 (${r1} Ω) and R2 (${r2} Ω) are in series, and that pair is in parallel with R3 (${r3} Ω)`
-    : `R1 (${r1} Ω) and R2 (${r2} Ω) are in parallel, and that pair is in series with R3 (${r3} Ω)`;
-
-  const steps = seriesFirst
-    ? [
-        `First combine the series pair: ${r1} + ${r2} = ${seriesResistance(r1, r2)} Ω.`,
-        `Then parallel with R3: (${seriesResistance(r1, r2)} × ${r3}) / (${seriesResistance(r1, r2)} + ${r3}) = ${round2(rTotal)} Ω.`,
-      ]
-    : [
-        `First combine the parallel pair: (${r1} × ${r2}) / (${r1} + ${r2}) = ${round2(parallelResistance(r1, r2))} Ω.`,
-        `Then add R3 in series: ${round2(parallelResistance(r1, r2))} + ${r3} = ${round2(rTotal)} Ω.`,
-      ];
-
-  if (d >= 4) {
-    const V = pick([12, 24, 36]);
-    const I = computeCurrent(V, rTotal);
-    return build(
-      [
-        { label: "Battery", value: V, unit: "V" },
-        { label: "R1", value: r1, unit: "Ω" },
-        { label: "R2", value: r2, unit: "Ω" },
-        { label: "R3", value: r3, unit: "Ω" },
-      ],
+  if (kind === "current") {
+    return buildNet(
+      spec,
+      networkGivens(spec, true),
       "current",
-      I,
+      sol.totalCurrent,
+      "A",
+      [...red.steps, `Total current: I = V / R_eq = ${V} / ${req} = ${totalI} A.`],
+      `For the network shown, what total current does the ${V} V battery supply?`
+    );
+  }
+
+  // Quantities about a specific resistor deep in the network.
+  const target =
+    kind === "branchCurrent"
+      ? pickBranchResistor(spec)
+      : pick(collectResistors(spec.root));
+
+  // Fallback if no genuine branch resistor exists (shouldn't happen for these archetypes).
+  if (!target) {
+    return buildNet(
+      spec,
+      networkGivens(spec, true),
+      "current",
+      sol.totalCurrent,
+      "A",
+      [...red.steps, `Total current: I = V / R_eq = ${V} / ${req} = ${totalI} A.`],
+      `For the network shown, what total current does the ${V} V battery supply?`
+    );
+  }
+
+  const reading = sol.readings[target.label];
+
+  if (kind === "branchCurrent") {
+    return buildNet(
+      spec,
+      networkGivens(spec, true),
+      "branchCurrent",
+      reading.current,
       "A",
       [
-        ...steps,
-        `Finally, total current: I = V / R_total = ${V} / ${round2(rTotal)} = ${round2(I)} A.`,
+        ...red.steps,
+        `Total current from the battery: I = V / R_eq = ${V} / ${req} = ${totalI} A.`,
+        `Working voltages back through the network, ${target.label} has ${round2(reading.voltage)} V across it.`,
+        `Current through ${target.label}: I = V / R = ${round2(reading.voltage)} / ${target.ohms} = ${round2(reading.current)} A.`,
       ],
-      `${desc}. A ${V} V battery drives the network. What is the total current?`
-      // No diagram: the 2-resistor template can't depict this mixed network.
+      `For the network shown (${V} V battery), how much current flows through ${target.label} (${target.ohms} Ω)?`
     );
   }
 
-  return build(
+  if (kind === "voltage") {
+    return buildNet(
+      spec,
+      networkGivens(spec, true),
+      "voltage",
+      reading.voltage,
+      "V",
+      [
+        ...red.steps,
+        `Total current: I = V / R_eq = ${V} / ${req} = ${totalI} A.`,
+        `Voltage across ${target.label} = I_branch × R = ${round2(reading.current)} × ${target.ohms} = ${round2(reading.voltage)} V.`,
+      ],
+      `For the network shown (${V} V battery), what is the voltage across ${target.label} (${target.ohms} Ω)?`
+    );
+  }
+
+  // power
+  return buildNet(
+    spec,
+    networkGivens(spec, true),
+    "power",
+    reading.power,
+    "W",
     [
-      { label: "R1", value: r1, unit: "Ω" },
-      { label: "R2", value: r2, unit: "Ω" },
-      { label: "R3", value: r3, unit: "Ω" },
+      ...red.steps,
+      `Total current: I = V / R_eq = ${V} / ${req} = ${totalI} A.`,
+      `Current through ${target.label} = ${round2(reading.current)} A.`,
+      `Power dissipated: P = I²·R = ${round2(reading.current)}² × ${target.ohms} = ${round2(reading.power)} W.`,
     ],
-    "rTotal",
-    rTotal,
-    "Ω",
-    steps,
-    `${desc}. What is the equivalent resistance of the whole network?`
-    // No diagram: the 2-resistor template can't depict this mixed network.
+    `For the network shown (${V} V battery), how much power is dissipated in ${target.label} (${target.ohms} Ω)?`
   );
 }
 

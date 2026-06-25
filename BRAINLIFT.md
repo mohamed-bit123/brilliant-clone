@@ -61,11 +61,23 @@ All three features share one backbone:
   gets "harder and harder" as the learner succeeds — this is the absorbed part of
   the adaptive-path idea.
 - The **top tiers reach university-introductory rigor** (in response to feedback
-  that the easy questions don't build real mastery): four-resistor ladder
-  networks, power dissipated in an individual series resistor (P = I²R), battery
-  charging with opposing EMFs, parallel cells with combined internal resistance,
-  and full Kirchhoff's-voltage-law synthesis. Early tiers stay gentle so the ramp
-  is real.
+  that the easy questions don't build real mastery): battery charging with
+  opposing EMFs, parallel cells with combined internal resistance, and full
+  Kirchhoff's-voltage-law synthesis. Early tiers stay gentle so the ramp is real.
+- **Genuinely harder _circuits_, not just harder wording** (in response to
+  feedback that complexity had been coming from trickier phrasing): a second
+  engine, `src/lib/network.ts`, models any series-parallel network as a recursive
+  tree and solves it exactly — equivalent resistance plus the current, voltage,
+  and power for every individual resistor. The harder `equivalent`-topic tiers now
+  build real topologies (a parallel pair feeding a series resistor, a sandwich of
+  series/parallel/series, a two-branch ladder), render them as actual schematics
+  via `NetworkVisual`, and ask multi-step questions — a branch current, a node
+  voltage, or the power dissipated deep in the network. The original lessons keep
+  their simple two-resistor templates; only the extra AI practice escalates.
+- **No answer leakage from diagrams**: network schematics run in "quiz" mode that
+  shows only the givens (resistor values + battery), never the computed readings,
+  and AI scenario rewording is skipped for diagram problems so the wording can't
+  contradict the picture.
 - When AI is on, the model only adds a **real-world scenario / rewording**; a
   verifier (`scenarioPreservesNumbers`) confirms every original number survived,
   otherwise the engine's wording is kept. The numbers and answer always come from
@@ -75,16 +87,18 @@ All three features share one backbone:
 
 ## Architecture notes
 
-- **Provider-agnostic** (`src/lib/ai/provider.ts`): Gemini today; set
-  `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to switch to Claude with no code
-  changes. Default model `gemini-2.5-flash`.
+- **Provider-agnostic** (`src/lib/ai/provider.ts`): one env var picks the backend.
+  `AI_PROVIDER=openai` (default, model `gpt-4o-mini`), `anthropic` (Claude), or
+  `gemini` — supply the matching key and no code changes are needed. If
+  `AI_PROVIDER` is unset it auto-selects whichever key is present.
 - **Keys are server-only.** All AI calls run in Next.js route handlers under
   `src/app/api/ai/`. The key is never `NEXT_PUBLIC_` and never reaches the client
   bundle. The client learns whether AI is on via `GET /api/ai/status`.
 - **Why no SymPy/math.js?** The circuit math is exact closed-form arithmetic, not
-  symbolic algebra. A domain-specific verified engine (`types.ts`) is stronger and
-  simpler than delegating arithmetic to a general CAS — it both generates and
-  checks every value.
+  symbolic algebra. Domain-specific verified engines (`types.ts` for single-loop
+  circuits, `network.ts` for series-parallel networks) are stronger and simpler
+  than delegating arithmetic to a general CAS — they both generate and check every
+  value.
 
 ## Deliberately left out (for now)
 

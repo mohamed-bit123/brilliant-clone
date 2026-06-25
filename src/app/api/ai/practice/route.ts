@@ -1,5 +1,6 @@
 import { generateText, isAIConfigured, parseJsonResponse } from "@/lib/ai/provider";
 import { generateProblem } from "@/lib/ai/practice";
+import { getTopicReference } from "@/lib/ai/knowledge";
 import {
   SCENARIO_SYSTEM,
   scenarioUserPrompt,
@@ -38,12 +39,16 @@ export async function POST(req: Request) {
   // The engine authors the problem and owns every number/answer.
   const problem = generateProblem(topic, difficulty as Difficulty);
 
+  // Network problems are defined by their schematic, so a reworded scenario
+  // could contradict the diagram. Keep the deterministic prompt for those.
+  const hasDiagram = Boolean(problem.interaction.networkPreview);
+
   // If AI is on, ask only for real-world FLAVOR, then verify it kept the numbers.
-  if (isAIConfigured()) {
+  if (isAIConfigured() && !hasDiagram) {
     try {
       const raw = await generateText({
         system: SCENARIO_SYSTEM,
-        user: scenarioUserPrompt(problem),
+        user: scenarioUserPrompt(problem, getTopicReference(topic)),
         json: true,
         temperature: 0.9,
         maxTokens: 500,

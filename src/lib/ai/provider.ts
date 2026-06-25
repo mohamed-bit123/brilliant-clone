@@ -3,13 +3,15 @@
  * handlers under app/api/, and every key it reads is a non-NEXT_PUBLIC_ env var,
  * so nothing here is ever inlined into the client bundle.
  *
- * Provider-agnostic LLM access. Today this talks to Gemini; setting
- * AI_PROVIDER=anthropic + ANTHROPIC_API_KEY switches to Claude with no other
- * code changes. All keys are read from server-only env vars and never reach
- * the client bundle.
+ * Provider-agnostic LLM access. Switch providers with AI_PROVIDER:
+ *   - AI_PROVIDER=openai    + OPENAI_API_KEY      → OpenAI (default model gpt-4o-mini)
+ *   - AI_PROVIDER=anthropic + ANTHROPIC_API_KEY   → Claude
+ *   - AI_PROVIDER=gemini    + GEMINI_API_KEY       → Gemini
+ * No other code changes are needed. All keys are read from server-only env vars
+ * and never reach the client bundle.
  */
 
-type AIProvider = "gemini" | "anthropic";
+type AIProvider = "gemini" | "anthropic" | "openai";
 
 type GenerateOptions = {
   system: string;
@@ -21,24 +23,41 @@ type GenerateOptions = {
 };
 
 function getConfig() {
-  const provider = (process.env.AI_PROVIDER as AIProvider) || "gemini";
+  // Default to whichever provider has a key, preferring an explicit AI_PROVIDER.
+  const explicit = process.env.AI_PROVIDER as AIProvider | undefined;
+  const provider: AIProvider =
+    explicit ||
+    (process.env.OPENAI_API_KEY
+      ? "openai"
+      : process.env.ANTHROPIC_API_KEY
+        ? "anthropic"
+        : "gemini");
   return {
     provider,
     geminiKey: process.env.GEMINI_API_KEY,
     geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     anthropicKey: process.env.ANTHROPIC_API_KEY,
     anthropicModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
+    openaiKey: process.env.OPENAI_API_KEY,
+    openaiModel: process.env.OPENAI_MODEL || "gpt-4o-mini",
   };
 }
 
 /** Whether a usable AI key is configured for the active provider. */
 export function isAIConfigured(): boolean {
   const c = getConfig();
-  return c.provider === "anthropic" ? Boolean(c.anthropicKey) : Boolean(c.geminiKey);
+  if (c.provider === "openai") return Boolean(c.openaiKey);
+  if (c.provider === "anthropic") return Boolean(c.anthropicKey);
+  return Boolean(c.geminiKey);
 }
 
 export async function generateText(opts: GenerateOptions): Promise<string> {
   const c = getConfig();
+
+  if (c.provider === "openai") {
+    if (!c.openaiKey) throw new Error("OPENAI_API_KEY is not set");
+    return callOpenAI(c.openaiModel, c.openaiKey, opts);
+  }
 
   if (c.provider === "anthropic") {
     if (!c.anthropicKey) throw new Error("ANTHROPIC_API_KEY is not set");
@@ -47,6 +66,45 @@ export async function generateText(opts: GenerateOptions): Promise<string> {
 
   if (!c.geminiKey) throw new Error("GEMINI_API_KEY is not set");
   return callGemini(c.geminiModel, c.geminiKey, opts);
+}
+
+async function callOpenAI(
+  model: string,
+  apiKey: string,
+  { system, user, json, temperature, maxTokens }: GenerateOptions
+): Promise<string> {
+  // OpenAI's JSON mode requires the word "json" to appear in the prompt.
+  const sys =
+    json && !/json/i.test(system + user)
+      ? `${system}\n\nRespond with a single valid JSON object.`
+      : system;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: temperature ?? 0.7,
+      max_tokens: maxTokens ?? 800,
+      ...(json ? { response_format: { type: "json_object" } } : {}),
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: user },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`OpenAI request failed (${res.status}): ${detail.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  return (data?.choices?.[0]?.message?.content ?? "").trim();
 }
 
 async function callGemini(

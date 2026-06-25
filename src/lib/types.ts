@@ -1,3 +1,5 @@
+import type { NetworkSpec } from "@/lib/network";
+
 export type StepType =
   | "concept"
   | "prediction"
@@ -168,6 +170,7 @@ export type InteractionConfig =
       answerUnit: string;
       circuitPreview?: CircuitPreview;
       multiSourcePreview?: MultiSourceConfig;
+      networkPreview?: NetworkSpec;
     }
   | {
       kind: "graph";

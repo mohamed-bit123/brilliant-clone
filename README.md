@@ -53,19 +53,18 @@ To wipe every user and start fresh, run `supabase/reset.sql` in the Supabase SQL
 
 CircuitLab has three optional AI features that are **purely additive** — the app works exactly the same with AI off:
 
-1. **Adaptive practice** — every lesson has a "Practice more" mode that generates an endless stream of problems that get harder as you get them right, climbing to university-introductory rigor (ladder networks, P = I²R in a series resistor, battery charging, Kirchhoff's voltage law) at the top tiers.
+1. **Adaptive practice** — every lesson has a "Practice more" mode that generates an endless stream of problems that get harder as you get them right, climbing to university-introductory rigor at the top tiers. The harder tiers render **genuine series-parallel networks as schematics** (e.g. a parallel pair whose combined current then flows through another resistor) and ask multi-step questions — a branch current, a node voltage, or the power dissipated deep inside the network — not just trickier wording.
 2. **Smart hints** — when you're stuck on a calculation, get a grounded nudge that never reveals the answer.
 3. **Explain my mistake** — a wrong numeric answer is diagnosed and explained in plain language, tuned to the specific error you made.
 
-Every number is computed and verified by the deterministic circuit engine in `src/lib/types.ts` — the model only ever produces language, so it can't hand you a wrong answer. See [BRAINLIFT.md](./BRAINLIFT.md) for the full decision record.
+Every number is computed and verified by the deterministic circuit engines in `src/lib/types.ts` and `src/lib/network.ts` — the model only ever produces language, so it can't hand you a wrong answer. See [BRAINLIFT.md](./BRAINLIFT.md) for the full decision record.
 
 To enable:
 
-1. Grab a free Gemini key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-2. Add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to `.env.local` — see `.env.local.example`.
-3. Restart the dev server. The AI affordances appear automatically.
+1. Add an `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`, default `gpt-4o-mini`) to `.env.local` — see `.env.local.example`.
+2. Restart the dev server. The AI affordances appear automatically.
 
-The key is read server-side only (no `NEXT_PUBLIC_` prefix) and never reaches the browser. To switch to Anthropic Claude later, set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` — no code changes needed.
+The key is read server-side only (no `NEXT_PUBLIC_` prefix) and never reaches the browser. The provider is swappable with one env var — set `AI_PROVIDER` to `openai` (default), `anthropic`, or `gemini` and supply the matching key. No code changes needed.
 
 ## Deploy
 
@@ -83,4 +82,4 @@ Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in your deplo
 - Next.js 16, React, TypeScript, Tailwind CSS
 - Supabase (optional auth & persistence)
 - Structured lesson content model
-- Optional grounded AI (Gemini by default, Anthropic-ready) — see [BRAINLIFT.md](./BRAINLIFT.md)
+- Optional grounded AI (OpenAI by default; Anthropic- and Gemini-ready) — see [BRAINLIFT.md](./BRAINLIFT.md)

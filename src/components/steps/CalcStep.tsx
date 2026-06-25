@@ -6,6 +6,7 @@ import type { PracticeTopic } from "@/lib/ai/types";
 import { FeedbackBanner } from "@/components/ui/FeedbackBanner";
 import { CircuitVisual, previewResistance } from "@/components/CircuitVisual";
 import { MultiSourceVisual } from "@/components/MultiSourceVisual";
+import { NetworkVisual } from "@/components/NetworkVisual";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { contextFromNumeric } from "@/lib/ai/context";
 import { AIHint, AIExplain } from "@/components/ai/AITutor";
@@ -76,6 +77,11 @@ export function CalcStep({
 
   return (
     <div>
+      {interaction.networkPreview && (
+        <div className="mb-4">
+          <NetworkVisual spec={interaction.networkPreview} quiz={quizVisual} />
+        </div>
+      )}
       {interaction.multiSourcePreview && (
         <div className="mb-4">
           <MultiSourceVisual config={interaction.multiSourcePreview} quiz={quizVisual} />

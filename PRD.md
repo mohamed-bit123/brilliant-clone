@@ -768,7 +768,8 @@ Full decision record (what was considered, shipped, and deliberately cut): see [
 Each lesson gains an optional practice mode that generates an endless stream of problems that get harder as the learner succeeds. The fixed lessons are unchanged; this is purely additional review.
 
 * The engine authors every problem and answer across five difficulty tiers per topic (Ohm's law, series, parallel, equivalent resistance, power, multiple voltage sources, mixed), building problems backward from clean operands so answers stay tidy.
-* The top tiers reach **university-introductory rigor**: four-resistor ladder networks, power dissipated in an individual series resistor (P = I²R), battery charging with opposing EMFs, parallel cells with combined internal resistance, and full Kirchhoff's-voltage-law synthesis with internal resistance.
+* The top tiers reach **university-introductory rigor**: battery charging with opposing EMFs, parallel cells with combined internal resistance, and full Kirchhoff's-voltage-law synthesis with internal resistance.
+* **Genuinely complex circuits, not just harder wording.** A second verified engine (`src/lib/network.ts`) models any series-parallel network as a recursive tree and solves it exactly (equivalent resistance plus per-resistor current/voltage/power). The harder `equivalent`-topic tiers build real topologies — a parallel pair feeding a series resistor, a series/parallel/series sandwich, a two-branch ladder — render them as live schematics (`NetworkVisual`), and ask multi-step questions (a branch current, a node voltage, or power deep in the network). The original lessons keep their simple two-resistor templates; only the extra AI practice escalates. Diagrams run in "quiz" mode (givens only, no computed readings) and AI rewording is skipped for diagram problems so wording can't contradict the picture.
 * Difficulty escalates on a clean solve and eases off after a struggle—the useful core of "adapt the path," without reordering the linear course.
 * When AI is on, the model adds real-world scenario framing only; a verifier confirms every given number survived, otherwise the engine's own wording is used.
 * Entry points: lesson completion screen, lesson sidebar, and each unlocked course card.
@@ -800,7 +801,7 @@ Phase 2 also added a new hand-built lesson on the topic learners most often find
 
 ## AI Architecture
 
-* **Provider-agnostic** (`src/lib/ai/provider.ts`): Gemini by default (`gemini-2.5-flash`); set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to switch to Claude with no code changes.
+* **Provider-agnostic** (`src/lib/ai/provider.ts`): one env var picks the backend — `AI_PROVIDER=openai` (default, `gpt-4o-mini`), `anthropic` (Claude), or `gemini` — supply the matching key with no code changes. If `AI_PROVIDER` is unset it auto-selects whichever key is present.
 * **Server-only keys.** All AI runs in Next.js route handlers under `src/app/api/ai/` (`status`, `hint`, `explain`, `practice`). The key is never `NEXT_PUBLIC_` and never reaches the client bundle; the client checks `GET /api/ai/status` to decide whether to show AI affordances.
 * **No external math engine needed.** Circuit math is exact closed-form arithmetic, not symbolic algebra; the domain-specific verified engine both generates and checks every value—stronger and simpler than delegating arithmetic to a general CAS.
 
