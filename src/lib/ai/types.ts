@@ -15,8 +15,14 @@ export type PracticeTopic =
   | "sources"
   | "mixed";
 
-/** Difficulty tier. 1 = single-step recall, 5 = multi-step synthesis. */
-export type Difficulty = 1 | 2 | 3 | 4 | 5;
+/**
+ * Difficulty tier. 1 = single-step recall; 5 = multi-step synthesis; 6-8 push
+ * into genuinely larger circuits (3-way parallels, nested ladders).
+ */
+export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+/** Highest difficulty the practice ladder will climb to. */
+export const MAX_DIFFICULTY: Difficulty = 8;
 
 /** Maps each lesson to the topic its "Practice more" mode should drill. */
 export const LESSON_TOPIC: Record<string, PracticeTopic> = {

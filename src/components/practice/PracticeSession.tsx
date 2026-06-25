@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Difficulty, GeneratedProblem, PracticeTopic } from "@/lib/ai/types";
-import { TOPIC_LABEL } from "@/lib/ai/types";
+import { TOPIC_LABEL, MAX_DIFFICULTY } from "@/lib/ai/types";
 import { requestPractice } from "@/lib/ai/client";
 import { generateProblem } from "@/lib/ai/practice";
 import { CalcStep } from "@/components/steps/CalcStep";
@@ -15,7 +15,7 @@ type PracticeSessionProps = {
   lessonTitle: string;
 };
 
-const MAX_LEVEL: Difficulty = 5;
+const MAX_LEVEL: Difficulty = MAX_DIFFICULTY;
 
 export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessionProps) {
   const aiEnabled = useAIStatus();
@@ -146,13 +146,20 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
 
 function LevelMeter({ level }: { level: Difficulty }) {
   return (
-    <div className="flex items-center gap-1.5" aria-label={`Difficulty level ${level} of 5`}>
-      <span className="mr-1 text-xs text-slate-500">Level</span>
-      {[1, 2, 3, 4, 5].map((n) => (
+    <div
+      className="flex items-center gap-1.5"
+      aria-label={`Difficulty level ${level} of ${MAX_LEVEL}`}
+    >
+      <span className="mr-1 text-xs text-slate-500">Level {level}</span>
+      {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((n) => (
         <span
           key={n}
           className={`h-2.5 w-2.5 rounded-full ${
-            n <= level ? "bg-gradient-to-r from-sky-500 to-emerald-400" : "bg-slate-700"
+            n <= level
+              ? n >= 6
+                ? "bg-gradient-to-r from-fuchsia-500 to-rose-400"
+                : "bg-gradient-to-r from-sky-500 to-emerald-400"
+              : "bg-slate-700"
           }`}
         />
       ))}

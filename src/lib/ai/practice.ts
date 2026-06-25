@@ -253,8 +253,8 @@ function genSeries(d: Difficulty): Built {
         "The two resistors add in series, so R2 = R_total − R1.",
         `R2 = ${round2(r1 + r2)} − ${r1} = ${round2(missing)} Ω.`,
       ],
-      `A ${V} V battery should push exactly ${targetI} A through two series resistors. One is ${r1} Ω. What must the second resistor be?`
-      // No diagram: it would label R2 with the answer.
+      `A ${V} V battery should push exactly ${targetI} A through two series resistors. One is ${r1} Ω. What must the second resistor be?`,
+      { mode: "series", voltage: V, r1, r2: missing, maskResistor: 2 }
     );
   }
 
@@ -278,8 +278,8 @@ function genSeries(d: Difficulty): Built {
         `Current: I = V / R = ${V} / ${rTotal} = ${round2(I)} A.`,
         `Voltage across R1: V1 = I × R1 = ${round2(I)} × ${r1} = ${round2(drop)} V.`,
       ],
-      `Two resistors (${r1} Ω and ${r2} Ω) are in series across a ${V} V battery. What is the voltage drop across the ${r1} Ω resistor?`
-      // No diagram: the battery voltage here is a given, not the unknown drop.
+      `Two resistors (${r1} Ω and ${r2} Ω) are in series across a ${V} V battery. What is the voltage drop across the ${r1} Ω resistor?`,
+      { mode: "series", voltage: V, r1, r2 }
     );
   }
 
@@ -333,8 +333,8 @@ function genParallel(d: Difficulty): Built {
         `Branch 2 must carry the rest: I2 = I_total − I1 = ${round2(targetTotal)} − ${round2(i1)} = ${round2(i2)} A.`,
         `R2 = V / I2 = ${V} / ${round2(i2)} = ${round2(missing)} Ω.`,
       ],
-      `A ${V} V battery feeds two parallel branches and should draw ${round2(targetTotal)} A total. Branch 1 is ${r1} Ω. What resistance is branch 2?`
-      // No diagram: it would label branch 2 with the answer.
+      `A ${V} V battery feeds two parallel branches and should draw ${round2(targetTotal)} A total. Branch 1 is ${r1} Ω. What resistance is branch 2?`,
+      { mode: "parallel", voltage: V, r1, r2: round2(missing), maskResistor: 2 }
     );
   }
 
@@ -415,6 +415,7 @@ const S2 = "R₂";
 const S3 = "R₃";
 const S4 = "R₄";
 const S5 = "R₅";
+const S6 = "R₆";
 
 function collectResistors(node: NetworkNode): { label: string; ohms: number }[] {
   if (node.kind === "resistor") return [{ label: node.label, ohms: node.ohms }];
@@ -454,14 +455,51 @@ function buildArchetype(d: Difficulty): NetworkSpec {
   }
 
   // d==5: a two-branch ladder (each branch a series pair) fed through a resistor.
+  if (d === 5) {
+    const [a, b] = nicePair();
+    const [c, e] = nicePair();
+    const lead = pick([1, 2, 3]);
+    const root = ser(
+      res(S1, lead),
+      par(ser(res(S2, a), res(S3, b)), ser(res(S4, c), res(S5, e)))
+    );
+    return { voltage: pick([24, 36, 48]), root };
+  }
+
+  // d==6: a lead resistor feeding THREE parallel branches.
+  if (d === 6) {
+    const [a, b] = nicePair();
+    const c = pick(small);
+    const lead = pick([1, 2, 3]);
+    const root = ser(res(S1, lead), par(res(S2, a), res(S3, b), res(S4, c)));
+    return { voltage: pick([24, 36, 48]), root };
+  }
+
+  // d==7: a full ladder with both a lead-in and a trailing resistor.
+  if (d === 7) {
+    const [a, b] = nicePair();
+    const [c, e] = nicePair();
+    const lead = pick([1, 2, 3]);
+    const tail = pick([1, 2, 3]);
+    const root = ser(
+      res(S1, lead),
+      par(ser(res(S2, a), res(S3, b)), ser(res(S4, c), res(S5, e))),
+      res(S6, tail)
+    );
+    return { voltage: pick([36, 48, 60]), root };
+  }
+
+  // d>=8: nested parallels — one branch itself contains a parallel sub-block.
   const [a, b] = nicePair();
-  const [c, e] = nicePair();
+  const c = pick(small);
   const lead = pick([1, 2, 3]);
+  const tail = pick([2, 3, 4]);
   const root = ser(
     res(S1, lead),
-    par(ser(res(S2, a), res(S3, b)), ser(res(S4, c), res(S5, e)))
+    par(ser(res(S2, c), par(res(S3, a), res(S4, b))), res(S5, pick(small))),
+    res(S6, tail)
   );
-  return { voltage: pick([24, 36, 48]), root };
+  return { voltage: pick([36, 48, 60]), root };
 }
 
 /** Picks a resistor whose current differs from the total (i.e. inside a parallel split). */
@@ -502,7 +540,7 @@ function genEquivalent(d: Difficulty): Built {
   else if (d === 2) kind = pick(["rTotal", "current"] as const);
   else if (d === 3) kind = pick(["current", "branchCurrent", "voltage"] as const);
   else if (d === 4) kind = pick(["branchCurrent", "voltage", "power"] as const);
-  else kind = pick(["branchCurrent", "power"] as const);
+  else kind = pick(["branchCurrent", "power", "voltage"] as const);
 
   if (kind === "rTotal") {
     return buildNet(
@@ -629,7 +667,8 @@ function genPower(d: Difficulty): Built {
         `Current (same everywhere in series): I = V / R = ${V} / ${total} = ${I} A.`,
         `Power in R1: P = I²·R = ${I}² × ${r1} = ${p1} W.`,
       ],
-      `A ${V} V battery drives a ${r1} Ω and a ${r2} Ω resistor in series. How much power is dissipated in the ${r1} Ω resistor?`
+      `A ${V} V battery drives a ${r1} Ω and a ${r2} Ω resistor in series. How much power is dissipated in the ${r1} Ω resistor?`,
+      { mode: "series", voltage: V, r1, r2 }
     );
   }
 
@@ -685,8 +724,8 @@ function genPower(d: Difficulty): Built {
     P,
     "W",
     ["Power delivered: P = V × I.", `P = ${V} × ${I} = ${round2(P)} W.`],
-    `A device runs at ${V} V and draws ${I} A. What power does it use?`
-    // No diagram: resistance isn't given here, so a resistor label would mislead.
+    `A device runs at ${V} V and draws ${I} A. What power does it use?`,
+    { mode: "simple", voltage: V, resistance: R }
   );
 }
 
@@ -915,12 +954,18 @@ export function generateProblem(
   topic: PracticeTopic,
   difficulty: Difficulty
 ): GeneratedProblem {
-  const built = GENERATORS[topic](difficulty);
+  // Levels 6-8 push every topic into genuinely larger circuits via the network
+  // engine (sources keeps its own KVL track). Lower levels stay topic-specific.
+  const useNetwork = difficulty >= 6 && topic !== "sources" && topic !== "equivalent";
+  const built = useNetwork
+    ? genEquivalent(difficulty)
+    : GENERATORS[topic](difficulty);
+  const titleTopic = useNetwork ? "Complex Circuit" : TOPIC_LABEL[topic];
   return {
     id: uid(topic),
     topic,
     difficulty,
-    title: `${TOPIC_LABEL[topic]} · Level ${difficulty}`,
+    title: `${titleTopic} · Level ${difficulty}`,
     prompt: built.prompt,
     interaction: built.interaction,
     feedback: {

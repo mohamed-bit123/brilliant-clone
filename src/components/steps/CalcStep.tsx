@@ -97,6 +97,7 @@ export function CalcStep({
             r2={preview.r2}
             maskSolveFor={interaction.solveFor}
             maskBranchIndex={interaction.branchIndex}
+            maskResistor={preview.maskResistor}
             quiz={quizVisual}
           />
         </div>

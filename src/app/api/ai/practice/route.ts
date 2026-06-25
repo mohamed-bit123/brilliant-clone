@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!topic || !VALID_TOPICS.has(topic)) topic = "ohms";
 
   let difficulty = Number(body.difficulty);
-  if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) {
+  if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 8) {
     difficulty = 1;
   }
 

@@ -13,6 +13,8 @@ type CircuitVisualProps = {
   /** Hide computed values the learner is solving for in calc steps */
   maskSolveFor?: "current" | "voltage" | "resistance" | "power" | "rTotal" | "branchCurrent";
   maskBranchIndex?: 1 | 2;
+  /** Show "?" for a specific resistor's value (a given the learner must find). */
+  maskResistor?: 1 | 2;
   /** Quiz mode: hide the computed metrics panel and branch readouts so the
    *  diagram can't reveal the answer. Used by practice/calc questions. */
   quiz?: boolean;
@@ -28,8 +30,11 @@ export function CircuitVisual({
   compact = false,
   maskSolveFor,
   maskBranchIndex = 1,
+  maskResistor,
   quiz = false,
 }: CircuitVisualProps) {
+  const r1Label = maskResistor === 1 ? "?" : (r1 ?? 0).toFixed(1);
+  const r2Label = maskResistor === 2 ? "?" : (r2 ?? 0).toFixed(1);
   const current = computeCurrent(voltage, resistance);
   const power = computePower(voltage, current);
   const hideCurrent = maskSolveFor === "current" || maskSolveFor === "branchCurrent";
@@ -98,9 +103,9 @@ export function CircuitVisual({
         {mode === "series" && r1 !== undefined && r2 !== undefined && (
           <>
             <Wire x1={70} y1={105} x2={110} y2={105} />
-            <Resistor x={110} y={90} label={`R₁ ${r1.toFixed(1)}Ω`} />
+            <Resistor x={110} y={90} label={`R₁ ${r1Label}Ω`} />
             <Wire x1={170} y1={105} x2={200} y2={105} />
-            <Resistor x={200} y={90} label={`R₂ ${r2.toFixed(1)}Ω`} />
+            <Resistor x={200} y={90} label={`R₂ ${r2Label}Ω`} />
             <Wire x1={260} y1={105} x2={290} y2={105} />
             <Bulb x={290} y={80} brightness={brightness} />
             <Wire x1={350} y1={105} x2={355} y2={105} />
@@ -140,7 +145,7 @@ export function CircuitVisual({
               count={hideBranch1Current ? 0 : dots1}
               color="#38bdf8"
             />
-            <Resistor x={145} y={42} label={`R₁ ${branch1R.toFixed(1)}Ω`} width={45} labelBelow />
+            <Resistor x={145} y={42} label={`R₁ ${r1 !== undefined ? r1Label : branch1R.toFixed(1)}Ω`} width={45} labelBelow />
             <Wire x1={190} y1={55} x2={270} y2={55} />
             {!quiz && (
               <text x={198} y={48} fill="#7dd3fc" fontSize="10" fontWeight="bold">
@@ -160,7 +165,7 @@ export function CircuitVisual({
               count={hideBranch2Current ? 0 : dots2}
               color="#c084fc"
             />
-            <Resistor x={145} y={142} label={`R₂ ${branch2R.toFixed(1)}Ω`} width={45} labelBelow />
+            <Resistor x={145} y={142} label={`R₂ ${r2 !== undefined ? r2Label : branch2R.toFixed(1)}Ω`} width={45} labelBelow />
             <Wire x1={190} y1={155} x2={270} y2={155} />
             {!quiz && (
               <text x={198} y={148} fill="#d8b4fe" fontSize="10" fontWeight="bold">

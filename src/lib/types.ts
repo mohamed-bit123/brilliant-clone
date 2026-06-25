@@ -25,6 +25,8 @@ export type CircuitPreview = {
   resistance?: number;
   r1?: number;
   r2?: number;
+  /** Show "?" instead of this resistor's value (for "find the resistor" problems). */
+  maskResistor?: 1 | 2;
 };
 
 export type SourceArrangement =
