@@ -19,7 +19,7 @@ import type {
   PracticeTopic,
   VerifiedSolution,
 } from "@/lib/ai/types";
-import { TOPIC_LABEL } from "@/lib/ai/types";
+import { TOPIC_LABEL, maxLevelForTopic } from "@/lib/ai/types";
 
 /**
  * Deterministic circuit problem generator.
@@ -525,7 +525,7 @@ function networkGivens(spec: NetworkSpec, includeBattery: boolean) {
   return givens;
 }
 
-function genEquivalent(d: Difficulty): Built {
+function genEquivalent(d: Difficulty, allowPower = false): Built {
   const spec = buildArchetype(d);
   const sol = solveNetwork(spec);
   const req = round2(sol.equivalentResistance);
@@ -539,8 +539,16 @@ function genEquivalent(d: Difficulty): Built {
   if (d <= 1) kind = "rTotal";
   else if (d === 2) kind = pick(["rTotal", "current"] as const);
   else if (d === 3) kind = pick(["current", "branchCurrent", "voltage"] as const);
-  else if (d === 4) kind = pick(["branchCurrent", "voltage", "power"] as const);
-  else kind = pick(["branchCurrent", "power", "voltage"] as const);
+  // "power" is only asked when the topic has covered it (Power lesson onward);
+  // Equivalent Resistance practice must never ask a power question.
+  else if (d === 4)
+    kind = pick(
+      allowPower ? (["branchCurrent", "voltage", "power"] as const) : (["branchCurrent", "voltage"] as const)
+    );
+  else
+    kind = pick(
+      allowPower ? (["branchCurrent", "power", "voltage"] as const) : (["branchCurrent", "voltage"] as const)
+    );
 
   if (kind === "rTotal") {
     return buildNet(
@@ -954,18 +962,21 @@ export function generateProblem(
   topic: PracticeTopic,
   difficulty: Difficulty
 ): GeneratedProblem {
-  // Levels 6-8 push every topic into genuinely larger circuits via the network
-  // engine (sources keeps its own KVL track). Lower levels stay topic-specific.
-  const useNetwork = difficulty >= 6 && topic !== "sources" && topic !== "equivalent";
-  const built = useNetwork
-    ? genEquivalent(difficulty)
-    : GENERATORS[topic](difficulty);
+  // Never exceed a topic's covered ceiling, so practice can't quiz an untaught
+  // concept (e.g. Ohm's-law practice never jumps to a full network).
+  const level = Math.min(difficulty, maxLevelForTopic(topic)) as Difficulty;
+
+  // Levels 6-8 push the network-ready topics into genuinely larger circuits.
+  // Power & Mixed have covered everything up to power, so their complex circuits
+  // may also ask for power; Equivalent uses its own (power-free) generator.
+  const useNetwork = level >= 6 && (topic === "power" || topic === "mixed");
+  const built = useNetwork ? genEquivalent(level, true) : GENERATORS[topic](level);
   const titleTopic = useNetwork ? "Complex Circuit" : TOPIC_LABEL[topic];
   return {
     id: uid(topic),
     topic,
-    difficulty,
-    title: `${titleTopic} · Level ${difficulty}`,
+    difficulty: level,
+    title: `${titleTopic} · Level ${level}`,
     prompt: built.prompt,
     interaction: built.interaction,
     feedback: {

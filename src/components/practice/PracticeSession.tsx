@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Difficulty, GeneratedProblem, PracticeTopic } from "@/lib/ai/types";
-import { TOPIC_LABEL, MAX_DIFFICULTY } from "@/lib/ai/types";
+import { TOPIC_LABEL, maxLevelForTopic } from "@/lib/ai/types";
 import { requestPractice } from "@/lib/ai/client";
 import { generateProblem } from "@/lib/ai/practice";
 import { CalcStep } from "@/components/steps/CalcStep";
@@ -15,9 +15,8 @@ type PracticeSessionProps = {
   lessonTitle: string;
 };
 
-const MAX_LEVEL: Difficulty = MAX_DIFFICULTY;
-
 export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessionProps) {
+  const maxLevel = maxLevelForTopic(topic);
   const aiEnabled = useAIStatus();
   const [problem, setProblem] = useState<GeneratedProblem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,13 +65,13 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
       // Escalate on a clean solve, ease off slightly after a struggle.
       const nextLevel = (
         cleanSolve
-          ? Math.min(MAX_LEVEL, difficulty + 1)
+          ? Math.min(maxLevel, difficulty + 1)
           : Math.max(1, difficulty - 1)
       ) as Difficulty;
       setDifficulty(nextLevel);
       loadProblem(nextLevel);
     },
-    [difficulty, loadProblem]
+    [difficulty, loadProblem, maxLevel]
   );
 
   return (
@@ -100,7 +99,7 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
       </div>
 
       <div className="mb-5 flex items-center gap-3">
-        <LevelMeter level={difficulty} />
+        <LevelMeter level={difficulty} maxLevel={maxLevel} />
         <div className="ml-auto flex gap-4 text-sm">
           <span className="text-slate-400">
             Solved <span className="font-semibold text-slate-200">{solved}</span>
@@ -145,14 +144,14 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
   );
 }
 
-function LevelMeter({ level }: { level: Difficulty }) {
+function LevelMeter({ level, maxLevel }: { level: Difficulty; maxLevel: Difficulty }) {
   return (
     <div
       className="flex items-center gap-1.5"
-      aria-label={`Difficulty level ${level} of ${MAX_LEVEL}`}
+      aria-label={`Difficulty level ${level} of ${maxLevel}`}
     >
       <span className="mr-1 text-xs text-slate-500">Level {level}</span>
-      {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((n) => (
+      {Array.from({ length: maxLevel }, (_, i) => i + 1).map((n) => (
         <span
           key={n}
           className={`h-2.5 w-2.5 rounded-full ${

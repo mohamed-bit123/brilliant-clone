@@ -24,6 +24,16 @@ export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 /** Highest difficulty the practice ladder will climb to. */
 export const MAX_DIFFICULTY: Difficulty = 8;
 
+/**
+ * Highest level a topic's practice may reach, so a lesson never quizzes a
+ * concept it hasn't taught yet. Only topics whose curriculum already includes
+ * full series-parallel networks (Equivalent Resistance and later) climb to the
+ * complex-circuit tiers (6-8); earlier single-concept topics cap at 5.
+ */
+export function maxLevelForTopic(topic: PracticeTopic): Difficulty {
+  return topic === "equivalent" || topic === "power" || topic === "mixed" ? 8 : 5;
+}
+
 /** Maps each lesson to the topic its "Practice more" mode should drill. */
 export const LESSON_TOPIC: Record<string, PracticeTopic> = {
   "lesson-1": "ohms",
