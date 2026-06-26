@@ -158,6 +158,19 @@ export function diagnose(ctx: StepContext): Diagnosis | null {
     }
   }
 
+  // Did they answer an intermediate result (e.g. R_eq or total current) instead
+  // of the asked quantity? Common on multi-step / complex-network problems.
+  const intermediates = (ctx.steps ?? []).flatMap((s) =>
+    (s.match(/-?\d+(?:\.\d+)?/g) ?? []).map((t) => parseFloat(t))
+  );
+  if (intermediates.some((n) => matches(n))) {
+    return {
+      label: "Stopped at an intermediate value",
+      detail:
+        "Your answer matches an intermediate result (like the equivalent resistance or the total current), not the final quantity the question asks for. You set the circuit up correctly but stopped early — carry that value into the remaining step.",
+    };
+  }
+
   // Generic fallbacks when no specific pattern matched.
   if (Math.abs(learner) > Math.abs(correct) * 3) {
     return {
@@ -177,20 +190,37 @@ export function diagnose(ctx: StepContext): Diagnosis | null {
   return null;
 }
 
+/** Hides the final answer inside the worked steps so a walkthrough can't leak it. */
+function redactAnswer(steps: string[], answer: number): string[] {
+  const rounded = Math.round(answer * 100) / 100;
+  const tol = Math.max(0.05, Math.abs(rounded) * 0.02);
+  return (steps ?? []).map((s) =>
+    s.replace(/-?\d+(?:\.\d+)?/g, (tok) => {
+      const n = parseFloat(tok);
+      return Number.isFinite(n) && Math.abs(n - rounded) <= tol ? "?" : tok;
+    })
+  );
+}
+
 /** Builds a plain-language explanation with no AI, for the AI-off fallback. */
 export function fallbackExplanation(ctx: StepContext): {
   explanation: string;
   misconception?: string;
 } {
   const d = diagnose(ctx);
-  const method = ctx.steps[0] ?? "Re-read the question and identify which quantity to solve for.";
+  const steps = redactAnswer(ctx.steps ?? [], ctx.correctAnswer);
+  const walkthrough =
+    steps.length > 0
+      ? `Here's the correct approach: ${steps.join(" ")} Finish that last step to get your answer.`
+      : "Re-read the question, pick the formula that links the givens to the unknown, and substitute one value at a time.";
+
   if (d) {
     return {
-      explanation: `${d.detail} ${method}`,
+      explanation: `${d.detail}\n\n${walkthrough}`,
       misconception: d.label,
     };
   }
   return {
-    explanation: `Let's reset and work it through. ${method} Then substitute the given values carefully and check your units.`,
+    explanation: `Let's work through it carefully. ${walkthrough}`,
   };
 }

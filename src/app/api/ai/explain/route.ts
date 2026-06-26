@@ -28,8 +28,8 @@ export async function POST(req: Request) {
     const raw = await generateText({
       system: EXPLAIN_SYSTEM,
       user: explainUserPrompt(ctx, diagnosis),
-      temperature: 0.5,
-      maxTokens: 200,
+      temperature: 0.45,
+      maxTokens: 420,
     });
     const explanation = raw.trim();
 

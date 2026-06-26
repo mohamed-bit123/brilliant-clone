@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       system: HINT_SYSTEM,
       user: hintUserPrompt(ctx),
       temperature: 0.5,
-      maxTokens: 120,
+      maxTokens: 220,
     });
     const hint = raw.trim();
 

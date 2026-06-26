@@ -76,13 +76,13 @@ export function AIExplain({ context }: { context: StepContext }) {
   if (result) {
     return (
       <div className="mt-3 rounded-xl border border-violet-500/40 bg-violet-950/40 px-4 py-3 text-sm leading-relaxed text-violet-100">
-        <span className="mr-2" aria-hidden>
-          🧭
-        </span>
         {result.misconception && (
-          <span className="font-semibold">{result.misconception}: </span>
+          <div className="mb-1 flex items-center gap-2 font-semibold text-violet-200">
+            <span aria-hidden>🧭</span>
+            {result.misconception}
+          </div>
         )}
-        {result.explanation}
+        <p className="whitespace-pre-line">{result.explanation}</p>
       </div>
     );
   }

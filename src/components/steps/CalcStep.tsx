@@ -20,6 +20,9 @@ type CalcStepProps = {
   topic?: PracticeTopic;
   questionPrompt?: string;
   stepTitle?: string;
+  /** The engine's worked solution steps, passed through to ground AI hints
+   *  and explanations (practice problems supply these). */
+  solutionSteps?: string[];
   /** Quiz mode hides the diagram's computed-values panel so it can't reveal
    *  the answer. Used for generated practice problems. */
   quizVisual?: boolean;
@@ -45,12 +48,14 @@ export function CalcStep({
   topic,
   questionPrompt,
   stepTitle,
+  solutionSteps,
   quizVisual = false,
 }: CalcStepProps) {
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [wrongCount, setWrongCount] = useState(0);
+  const [lastWrong, setLastWrong] = useState<number | undefined>(undefined);
   const aiEnabled = useAIStatus();
 
   const num = parseFloat(value);
@@ -66,6 +71,7 @@ export function CalcStep({
         prompt: questionPrompt ?? stepTitle ?? "this problem",
         stepTitle: stepTitle ?? "Practice",
         attempts,
+        steps: solutionSteps,
       })
     : null;
 
@@ -147,7 +153,14 @@ export function CalcStep({
             Check Answer
           </button>
           {aiReady && baseContext && (attempts >= 1 || wrongCount >= 1) && (
-            <AIHint key={wrongCount} context={baseContext} />
+            <AIHint
+              key={wrongCount}
+              context={
+                lastWrong !== undefined
+                  ? { ...baseContext, learnerAnswer: lastWrong }
+                  : baseContext
+              }
+            />
           )}
           {!aiReady && attempts >= 2 && feedback.hint && !showHint && (
             <button
@@ -191,6 +204,7 @@ export function CalcStep({
           onClick={() => {
             onComplete(false);
             setWrongCount((c) => c + 1);
+            setLastWrong(num);
             setValue("");
             setSubmitted(false);
             setShowHint(false);

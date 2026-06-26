@@ -36,8 +36,16 @@ export function contextFromNumeric(
     stepTitle: string;
     learnerAnswer?: number;
     attempts?: number;
+    /** The engine's actual worked steps for this problem, when available
+     *  (practice problems ship them). Far richer than the generic method hint. */
+    steps?: string[];
   }
 ): StepContext {
+  const fallbackSteps = [
+    opts.topic === "sources"
+      ? "Combine the sources first (series EMFs add, opposing subtract, identical parallel cells keep EMF), treat internal resistance as series R, then apply I = ε_net / R_total and V = ε − I·r."
+      : methodHintFor(interaction.solveFor),
+  ];
   return {
     topic: opts.topic,
     topicLabel: TOPIC_LABEL[opts.topic],
@@ -47,11 +55,7 @@ export function contextFromNumeric(
     solveFor: interaction.solveFor,
     answerUnit: interaction.answerUnit,
     correctAnswer: interaction.correctAnswer,
-    steps: [
-      opts.topic === "sources"
-        ? "Combine the sources first (series EMFs add, opposing subtract, identical parallel cells keep EMF), treat internal resistance as series R, then apply I = ε_net / R_total and V = ε − I·r."
-        : methodHintFor(interaction.solveFor),
-    ],
+    steps: opts.steps && opts.steps.length > 0 ? opts.steps : fallbackSteps,
     learnerAnswer: opts.learnerAnswer,
     attempts: opts.attempts,
   };
