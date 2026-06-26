@@ -41,15 +41,12 @@ export function CircuitVisual({
   const hideVoltage = maskSolveFor === "voltage";
   const hideResistance = maskSolveFor === "resistance" || maskSolveFor === "rTotal";
   const hidePower = maskSolveFor === "power";
-  const brightness = hideCurrent ? 0.35 : Math.min(1, current / 5);
-  const electronSpeed = hideCurrent ? 0 : Math.max(0.5, Math.min(3, current / 2));
+  // Current always flows visibly through the circuit (it doesn't reveal the
+  // numeric answer — the I/V/R *values* are masked separately below). This keeps
+  // the diagram physically honest: e.g. both parallel branches always animate.
+  const brightness = Math.min(1, current / 5);
+  const electronSpeed = Math.max(0.5, Math.min(3, current / 2));
   const heatLevel = Math.min(1, power / 30);
-
-  const hideBranch1Current =
-    hideCurrent && (maskSolveFor !== "branchCurrent" || maskBranchIndex === 1);
-  const hideBranch2Current =
-    hideCurrent && maskSolveFor === "branchCurrent" && maskBranchIndex === 2;
-  const hideTotalCurrent = hideCurrent;
 
   const branch1R = r1 ?? 4;
   const branch2R = r2 ?? 8;
@@ -94,8 +91,8 @@ export function CircuitVisual({
             <Wire x1={30} y1={175} x2={30} y2={120} />
             <ElectronFlow
               path="M 70,105 L 130,105 L 190,105 L 230,105 L 290,105 L 340,105 L 340,175 L 30,175 L 30,120"
-              speed={electronSpeed || 1}
-              count={hideCurrent ? 0 : 3}
+              speed={electronSpeed}
+              count={3}
             />
           </>
         )}
@@ -114,8 +111,8 @@ export function CircuitVisual({
             <Wire x1={30} y1={175} x2={30} y2={120} />
             <ElectronFlow
               path="M 70,105 L 170,105 L 260,105 L 350,105 L 355,105 L 355,175 L 30,175 L 30,120"
-              speed={hideCurrent ? 0 : electronSpeed}
-              count={hideCurrent ? 0 : 3}
+              speed={electronSpeed}
+              count={3}
             />
           </>
         )}
@@ -126,8 +123,8 @@ export function CircuitVisual({
             <Wire x1={70} y1={105} x2={110} y2={105} />
             <ElectronFlow
               path="M 70,105 L 110,105"
-              speed={hideTotalCurrent ? 0 : speedTotal}
-              count={hideTotalCurrent ? 0 : dotsTotal}
+              speed={speedTotal}
+              count={dotsTotal}
               color="#fbbf24"
             />
             <circle cx={110} cy={105} r={5} fill="#38bdf8" />
@@ -141,8 +138,8 @@ export function CircuitVisual({
             <Wire x1={110} y1={55} x2={145} y2={55} />
             <ElectronFlow
               path="M 110,105 L 110,55 L 190,55 L 270,55 L 270,105"
-              speed={hideBranch1Current ? 0 : speed1}
-              count={hideBranch1Current ? 0 : dots1}
+              speed={speed1}
+              count={dots1}
               color="#38bdf8"
             />
             <Resistor x={145} y={42} label={`R₁ ${r1 !== undefined ? r1Label : branch1R.toFixed(1)}Ω`} width={45} labelBelow />
@@ -161,8 +158,8 @@ export function CircuitVisual({
             <Wire x1={110} y1={155} x2={145} y2={155} />
             <ElectronFlow
               path="M 110,105 L 110,155 L 190,155 L 270,155 L 270,105"
-              speed={hideBranch2Current ? 0 : speed2}
-              count={hideBranch2Current ? 0 : dots2}
+              speed={speed2}
+              count={dots2}
               color="#c084fc"
             />
             <Resistor x={145} y={142} label={`R₂ ${r2 !== undefined ? r2Label : branch2R.toFixed(1)}Ω`} width={45} labelBelow />
@@ -179,8 +176,8 @@ export function CircuitVisual({
             <Wire x1={270} y1={105} x2={305} y2={105} />
             <ElectronFlow
               path="M 270,105 L 355,105"
-              speed={hideTotalCurrent ? 0 : speedTotal}
-              count={hideTotalCurrent ? 0 : dotsTotal}
+              speed={speedTotal}
+              count={dotsTotal}
               color="#fbbf24"
             />
             <text x={274} y={98} fill="#94a3b8" fontSize="10">join</text>
@@ -193,8 +190,8 @@ export function CircuitVisual({
             <Wire x1={20} y1={90} x2={30} y2={90} />
             <ElectronFlow
               path="M 355,105 L 355,28 L 20,28 L 20,90 L 30,90"
-              speed={hideTotalCurrent ? 0 : speedTotal}
-              count={hideTotalCurrent ? 0 : dotsTotal}
+              speed={speedTotal}
+              count={dotsTotal}
               color="#fbbf24"
             />
             <text x={168} y={22} fill="#94a3b8" fontSize="9">return to battery</text>
