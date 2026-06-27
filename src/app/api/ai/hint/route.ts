@@ -1,10 +1,22 @@
 import { generateText, isAIConfigured } from "@/lib/ai/provider";
-import { HINT_SYSTEM, hintUserPrompt, hintLeaksAnswer } from "@/lib/ai/prompts";
+import {
+  HINT_SYSTEM,
+  hintUserPrompt,
+  leaksComputedValue,
+  redactComputedValues,
+} from "@/lib/ai/prompts";
 import type { HintResponse, StepContext } from "@/lib/ai/types";
 
 function fallbackHint(ctx: StepContext): string {
+  // Use the first worked step as a method nudge, but redact any computed value
+  // so the fallback itself never leaks an intermediate or final answer.
+  const [first] = redactComputedValues(
+    ctx.steps ?? [],
+    ctx.correctAnswer,
+    (ctx.givens ?? []).map((g) => g.value)
+  );
   return (
-    ctx.steps?.[0] ??
+    first ??
     "Start from the formula that links the given quantities to what you're solving for, then substitute one value at a time."
   );
 }
@@ -34,8 +46,14 @@ export async function POST(req: Request) {
     });
     const hint = raw.trim();
 
-    // Guardrail: never let a hint give away the verified answer.
-    if (!hint || hintLeaksAnswer(hint, ctx.correctAnswer)) {
+    const allowed = [
+      ...ctx.givens.map((g) => g.value),
+      ...(ctx.learnerAnswer !== undefined ? [ctx.learnerAnswer] : []),
+    ];
+
+    // Guardrail: never let a hint give away the final answer OR any intermediate
+    // subproblem result the learner still has to compute.
+    if (!hint || leaksComputedValue(hint, ctx.steps, ctx.correctAnswer, allowed)) {
       return Response.json({ hint: fallbackHint(ctx), source: "fallback" } satisfies HintResponse);
     }
 

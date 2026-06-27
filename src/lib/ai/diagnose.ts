@@ -1,4 +1,5 @@
 import type { StepContext } from "@/lib/ai/types";
+import { redactComputedValues, stepResultValues } from "@/lib/ai/prompts";
 
 /**
  * Deterministic misconception classifier.
@@ -158,16 +159,30 @@ export function diagnose(ctx: StepContext): Diagnosis | null {
     }
   }
 
-  // Did they answer an intermediate result (e.g. R_eq or total current) instead
-  // of the asked quantity? Common on multi-step / complex-network problems.
-  const intermediates = (ctx.steps ?? []).flatMap((s) =>
-    (s.match(/-?\d+(?:\.\d+)?/g) ?? []).map((t) => parseFloat(t))
-  );
-  if (intermediates.some((n) => matches(n))) {
+  const la = Math.round(learner * 100) / 100;
+  const unit = ctx.answerUnit;
+
+  // Did they just report ONE of the given component values without combining
+  // anything? (e.g. answering "5 Ω" when only a single resistor is 5 Ω.) This is
+  // distinct from stopping at a computed intermediate, so name it precisely.
+  const givenVals = ctx.givens.map((g) => g.value);
+  if (givenVals.some((g) => matches(g))) {
     return {
-      label: "Stopped at an intermediate value",
-      detail:
-        "Your answer matches an intermediate result (like the equivalent resistance or the total current), not the final quantity the question asks for. You set the circuit up correctly but stopped early — carry that value into the remaining step.",
+      label: "Reported a single given value",
+      detail: `Your answer (${la} ${unit}) is just one of the values already given, on its own. The question is about the whole circuit, so the components have to be combined the way they're connected — reduce each parallel group, then add the series parts — before you can read off what it asks for.`,
+    };
+  }
+
+  // Did they answer a genuine intermediate RESULT computed partway through the
+  // solution (the result of a step, not a given)? Common on multi-step problems.
+  const tolFor = (n: number) => Math.max(0.15, Math.abs(n) * 0.04);
+  const stepResults = stepResultValues(ctx.steps ?? []).filter(
+    (v) => Math.abs(v - correct) > tolFor(correct)
+  );
+  if (stepResults.some((n) => matches(n))) {
+    return {
+      label: "Stopped one step early",
+      detail: `Your answer (${la} ${unit}) is a value from partway through the solution, not the final quantity asked for. You set it up correctly but stopped before the last step — take that result and finish the remaining operation.`,
     };
   }
 
@@ -190,37 +205,28 @@ export function diagnose(ctx: StepContext): Diagnosis | null {
   return null;
 }
 
-/** Hides the final answer inside the worked steps so a walkthrough can't leak it. */
-function redactAnswer(steps: string[], answer: number): string[] {
-  const rounded = Math.round(answer * 100) / 100;
-  const tol = Math.max(0.05, Math.abs(rounded) * 0.02);
-  return (steps ?? []).map((s) =>
-    s.replace(/-?\d+(?:\.\d+)?/g, (tok) => {
-      const n = parseFloat(tok);
-      return Number.isFinite(n) && Math.abs(n - rounded) <= tol ? "?" : tok;
-    })
-  );
-}
-
 /** Builds a plain-language explanation with no AI, for the AI-off fallback. */
 export function fallbackExplanation(ctx: StepContext): {
   explanation: string;
   misconception?: string;
 } {
   const d = diagnose(ctx);
-  const steps = redactAnswer(ctx.steps ?? [], ctx.correctAnswer);
-  const walkthrough =
-    steps.length > 0
-      ? `Here's the correct approach: ${steps.join(" ")} Finish that last step to get your answer.`
-      : "Re-read the question, pick the formula that links the givens to the unknown, and substitute one value at a time.";
 
+  // When we have a specific diagnosis it already names the mistake and the next
+  // move, so keep it tight — don't dump the whole worked method on top.
   if (d) {
-    return {
-      explanation: `${d.detail}\n\n${walkthrough}`,
-      misconception: d.label,
-    };
+    return { explanation: d.detail, misconception: d.label };
   }
-  return {
-    explanation: `Let's work through it carefully. ${walkthrough}`,
-  };
+
+  // No specific pattern: give a short method nudge from the first step, with all
+  // computed values hidden so nothing is handed over.
+  const [firstStep] = redactComputedValues(
+    ctx.steps ?? [],
+    ctx.correctAnswer,
+    (ctx.givens ?? []).map((g) => g.value)
+  );
+  const nudge =
+    firstStep ??
+    "Re-read the question, pick the formula that links the givens to the unknown, and substitute one value at a time.";
+  return { explanation: `Let's work through it. ${nudge}` };
 }

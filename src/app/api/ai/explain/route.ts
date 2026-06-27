@@ -1,7 +1,6 @@
 import { generateText, isAIConfigured } from "@/lib/ai/provider";
-import { EXPLAIN_SYSTEM, explainUserPrompt } from "@/lib/ai/prompts";
+import { EXPLAIN_SYSTEM, explainUserPrompt, leaksComputedValue } from "@/lib/ai/prompts";
 import { diagnose, fallbackExplanation } from "@/lib/ai/diagnose";
-import { hintLeaksAnswer } from "@/lib/ai/prompts";
 import type { ExplainResponse, StepContext } from "@/lib/ai/types";
 
 export async function POST(req: Request) {
@@ -28,13 +27,21 @@ export async function POST(req: Request) {
     const raw = await generateText({
       system: EXPLAIN_SYSTEM,
       user: explainUserPrompt(ctx, diagnosis),
-      temperature: 0.45,
-      maxTokens: 420,
+      temperature: 0.4,
+      maxTokens: 220,
     });
     const explanation = raw.trim();
 
-    // Guardrail: an explanation should help them retry, not hand over the number.
-    if (!explanation || hintLeaksAnswer(explanation, ctx.correctAnswer)) {
+    // Values the explanation may mention: the givens + the learner's own answer
+    // (they already know it). Everything else computed must stay hidden.
+    const allowed = [
+      ...ctx.givens.map((g) => g.value),
+      ...(ctx.learnerAnswer !== undefined ? [ctx.learnerAnswer] : []),
+    ];
+
+    // Guardrail: an explanation should help them retry, not hand over the final
+    // answer OR any intermediate subproblem result they still need to compute.
+    if (!explanation || leaksComputedValue(explanation, ctx.steps, ctx.correctAnswer, allowed)) {
       const fb = fallbackExplanation(ctx);
       return Response.json({ ...fb, source: "fallback" } satisfies ExplainResponse);
     }

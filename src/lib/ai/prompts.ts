@@ -15,20 +15,20 @@ Write 2-4 short sentences of plain text:
 - Name the specific rule or relationship that applies right now (e.g. "these two resistors are in series, so add them first").
 - Tell them the very next thing to set up or compute — then stop, so they take the step themselves.
 HARD RULES:
-- Never state the final numeric answer or do the last calculation that produces it.
-- You MAY name an intermediate setup ("find the total resistance first") but not reveal a value shown as "?".
+- Never state ANY computed value — not the final answer, and not any intermediate result the learner must work out (equivalent/total resistance, total or branch current, a node voltage, a power, etc.). Any number shown as "?" is hidden on purpose; never guess or fill it in.
+- You MAY name WHAT to compute next ("first combine the two resistors", "then find the total current") and you MAY use the GIVEN numbers, but never state the value that a step produces.
 - Warm, concrete, specific to THIS problem. Plain text only — no markdown, no headings, no preamble.`;
 
 export const EXPLAIN_SYSTEM = `You are a patient, encouraging circuit-electronics tutor for a beginner course.
-You receive a JSON object: the question, the givens, what to solve for, the learner's WRONG answer ("learnerAnswer"), "workedSteps" (the correct deterministic process with the final number redacted as "?"), and "diagnosis" (a best guess at their mistake; it may be "unclear").
-Write a focused explanation in plain language with these THREE parts, in order:
-1. WHAT YOU DID: Name the specific mistake the learner most likely made. If "diagnosis.misconception" is not "unclear", build on it. Otherwise infer the most likely misstep by comparing their answer to the worked steps (e.g. they stopped early, used the wrong rule, divided the wrong way, used one resistor instead of the combination). Never assert a calculation you cannot support from the data.
-2. WHY IT'S WRONG: Briefly explain the concept they tripped on, in one or two sentences.
-3. HOW TO DO IT: Walk through the correct steps in order using the givens — but STOP before the final calculation so they finish it themselves.
+You receive a JSON object: the question, the givens, what to solve for, the learner's WRONG answer ("learnerAnswer"), "workedSteps" (the correct method with every computed value hidden as "?"), and "diagnosis" (a deterministic best-guess at their mistake; may be "unclear").
+Your job, in 2-4 short sentences:
+1. Say what the learner's OWN answer represents and why it isn't the final quantity asked for. Anchor everything on "learnerAnswer" — refer to their actual value. NEVER claim they computed a different number than "learnerAnswer".
+2. Point them to the SINGLE next move that fixes it (e.g. "now add the series resistor to that combination"), then stop.
+If "diagnosis.misconception" is not "unclear", base your explanation on it. Otherwise infer the most likely slip by comparing "learnerAnswer" to the givens and the method — but never assert a calculation you can't support.
 HARD RULES:
-- Never state the final correct number or perform the last step that yields it. Intermediate setup values are fine; a value shown as "?" must stay hidden.
-- Keep it tight: 4-7 short sentences. You may put each step of part 3 on its own line.
-- Encouraging, never condescending. Plain text only — no markdown headings, no preamble.`;
+- Be brief and targeted. No numbered multi-step walkthrough, no restating the whole solution — just what they did and the one next step.
+- Never state ANY computed value (the final answer or any intermediate like an equivalent resistance, total/branch current, voltage drop, or power); values shown as "?" stay hidden. You MAY use the given numbers and the learner's own answer.
+- Encouraging, never condescending. Plain text only — no markdown, no headings, no preamble.`;
 
 export const SCENARIO_SYSTEM = `You rewrite beginner circuit word-problems with vivid, concrete real-world framing (flashlights, phone chargers, electric kettles, e-bikes, string lights, etc.).
 You will receive a JSON object with the original "prompt", the list of "givens", and a "reference" (a formula sheet + realistic device/value bank for this topic).
@@ -41,18 +41,54 @@ HARD RULES:
 - "scenario" is one short sentence of real-world setup. "prompt" is the rewritten question (one or two sentences) and must contain every given number as a digit.
 - Do not include the answer. Output JSON only.`;
 
+const tolOf = (n: number) => Math.max(0.05, Math.abs(n) * 0.02);
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 /**
- * Replaces the final answer wherever it appears in the worked steps with "?",
- * so the model can see the full reasoning process without parroting the result.
- * Intermediate values are kept; only tokens equal to the answer are hidden.
+ * The computed result of each worked step is the LAST number on that line
+ * (steps are written "label = formula = substitution = result unit"). These are
+ * the subproblem answers — equivalent resistance, total/branch current, a node
+ * voltage, etc. — that the learner is supposed to work out, so they must never
+ * be shown or stated by the model.
  */
-export function redactAnswerInSteps(steps: string[], answer: number): string[] {
-  const rounded = Math.round(answer * 100) / 100;
-  const tol = Math.max(0.05, Math.abs(rounded) * 0.02);
+export function stepResultValues(steps: string[]): number[] {
+  const out: number[] = [];
+  for (const s of steps ?? []) {
+    const nums = s.match(/-?\d+(?:\.\d+)?/g);
+    if (nums && nums.length) {
+      const last = parseFloat(nums[nums.length - 1]);
+      if (Number.isFinite(last)) out.push(last);
+    }
+  }
+  return out;
+}
+
+/** Values to hide = every step result + the final answer, minus anything that
+ *  is actually a given (givens are known to the learner and may be referenced). */
+function protectedValues(steps: string[], answer: number, givenValues: number[]): number[] {
+  const givens = givenValues.map(round2);
+  const isGiven = (n: number) => givens.some((g) => Math.abs(n - g) <= tolOf(g));
+  return [...stepResultValues(steps), round2(answer)].filter((v) => !isGiven(v));
+}
+
+/**
+ * Hides EVERY computed value in the worked steps — the final answer AND every
+ * intermediate subproblem result — replacing each with "?". Givens stay visible,
+ * label subscripts (R1, V2, I1) are preserved, and reciprocal numerators ("1/…")
+ * are kept, so the method/structure of each step is still legible to the model.
+ */
+export function redactComputedValues(
+  steps: string[],
+  answer: number,
+  givenValues: number[] = []
+): string[] {
+  const hide = protectedValues(steps, answer, givenValues);
   return (steps ?? []).map((step) =>
-    step.replace(/-?\d+(?:\.\d+)?/g, (tok) => {
+    step.replace(/(?<![A-Za-z_\d])-?\d+(?:\.\d+)?/g, (tok: string, offset: number) => {
       const n = parseFloat(tok);
-      return Number.isFinite(n) && Math.abs(n - rounded) <= tol ? "?" : tok;
+      if (!Number.isFinite(n)) return tok;
+      if (n === 1 && step[offset + tok.length] === "/") return tok; // reciprocal "1/R"
+      return hide.some((v) => Math.abs(n - v) <= tolOf(v)) ? "?" : tok;
     })
   );
 }
@@ -65,7 +101,11 @@ export function hintUserPrompt(ctx: StepContext): string {
       givens: ctx.givens,
       solveFor: ctx.solveFor,
       answerUnit: ctx.answerUnit,
-      workedSteps: redactAnswerInSteps(ctx.steps, ctx.correctAnswer),
+      workedSteps: redactComputedValues(
+        ctx.steps,
+        ctx.correctAnswer,
+        ctx.givens.map((g) => g.value)
+      ),
       learnerAttempts: ctx.attempts ?? 0,
       ...(ctx.learnerAnswer !== undefined ? { learnerAnswer: ctx.learnerAnswer } : {}),
     },
@@ -83,7 +123,11 @@ export function explainUserPrompt(ctx: StepContext, diagnosis: Diagnosis | null)
       solveFor: ctx.solveFor,
       answerUnit: ctx.answerUnit,
       learnerAnswer: ctx.learnerAnswer,
-      workedSteps: redactAnswerInSteps(ctx.steps, ctx.correctAnswer),
+      workedSteps: redactComputedValues(
+        ctx.steps,
+        ctx.correctAnswer,
+        ctx.givens.map((g) => g.value)
+      ),
       diagnosis: diagnosis
         ? { misconception: diagnosis.label, explanation: diagnosis.detail }
         : { misconception: "unclear", explanation: "No specific pattern detected." },
@@ -107,18 +151,25 @@ export function scenarioUserPrompt(problem: GeneratedProblem, reference?: string
 }
 
 /**
- * Guardrail: returns true if the hint text leaks the final numeric answer.
- * Used to reject (and fall back) on hints that give away the result.
+ * Guardrail: returns true if `text` states ANY value the learner is meant to
+ * compute — the final answer OR any intermediate subproblem result. `allowed`
+ * lists values that are fine to mention (the givens, plus the learner's own
+ * answer, which they already know). Label subscripts like "R1" are ignored.
+ * Used to reject (and fall back from) hints/explanations that hand a value over.
  */
-export function hintLeaksAnswer(hint: string, answer: number): boolean {
-  const rounded = Math.round(answer * 100) / 100;
-  // Match standalone numbers in the hint and compare against the answer.
-  const numbers = hint.match(/-?\d+(?:\.\d+)?/g);
-  if (!numbers) return false;
-  return numbers.some((token) => {
+export function leaksComputedValue(
+  text: string,
+  steps: string[],
+  answer: number,
+  allowed: number[] = []
+): boolean {
+  const hide = protectedValues(steps, answer, allowed);
+  if (hide.length === 0) return false;
+  const tokens = text.match(/(?<![A-Za-z_])-?\d+(?:\.\d+)?/g);
+  if (!tokens) return false;
+  return tokens.some((token) => {
     const n = parseFloat(token);
-    if (!Number.isFinite(n)) return false;
-    return Math.abs(n - rounded) <= Math.max(0.05, Math.abs(rounded) * 0.02);
+    return Number.isFinite(n) && hide.some((v) => Math.abs(n - v) <= tolOf(v));
   });
 }
 
