@@ -4,7 +4,10 @@ import Link from "next/link";
 import { course } from "@/content/course";
 import { useAuth } from "@/context/AuthContext";
 import { getCourseCompletionCount } from "@/lib/storage";
+import { LESSON_TOPIC } from "@/lib/ai/types";
+import { isConcept, isDue, strength } from "@/lib/review";
 import { ProgressBar, StreakBadge } from "@/components/ui/FeedbackBanner";
+import { RetentionPanel } from "@/components/review/RetentionPanel";
 
 export function CoursePath() {
   const { state, user } = useAuth();
@@ -30,6 +33,8 @@ export function CoursePath() {
         />
       </div>
 
+      <RetentionPanel />
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {course.lessons.map((lesson) => {
           const progress = state.lessonProgress[lesson.id];
@@ -40,6 +45,12 @@ export function CoursePath() {
           const stepPct = Math.round(
             (Math.min(currentStep, lesson.steps.length) / lesson.steps.length) * 100
           );
+
+          const topic = LESSON_TOPIC[lesson.id];
+          const mem =
+            topic && isConcept(topic) ? state.review?.concepts[topic] : undefined;
+          const retentionPct = mem ? Math.round(strength(mem) * 100) : null;
+          const reviewDue = mem ? isDue(mem) : false;
 
           return (
             <div
@@ -86,9 +97,21 @@ export function CoursePath() {
 
                 <div className="mt-3 pl-13">
                   {completed && (
-                    <p className="text-xs font-medium text-emerald-400">
-                      ✓ Mastered · Tap to review
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="text-xs font-medium text-emerald-400">
+                        ✓ Mastered
+                      </p>
+                      {retentionPct !== null && (
+                        <span className="text-xs text-slate-500">
+                          · retention {retentionPct}%
+                        </span>
+                      )}
+                      {reviewDue && (
+                        <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
+                          review due
+                        </span>
+                      )}
+                    </div>
                   )}
                   {unlocked && !completed && currentStep === 0 && (
                     <p className="text-xs text-slate-500">Ready to start</p>

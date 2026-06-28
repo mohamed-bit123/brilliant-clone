@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LessonProgress, UserProfile, UserState } from "@/lib/types";
+import type { ReviewState } from "@/lib/review";
+import { emptyReview } from "@/lib/review";
 import { COURSE_ID } from "@/content/course";
 import { createDefaultProgress, createInitialState } from "@/lib/storage";
 
@@ -53,6 +55,22 @@ export async function loadStateFromSupabase(
   if (streakRes.error) throw streakRes.error;
   if (progressRes.error) throw progressRes.error;
 
+  // review_state is fetched separately and tolerantly: deployments that haven't
+  // run the Phase 3 migration simply fall back to an empty review schedule.
+  let review: ReviewState = emptyReview();
+  try {
+    const reviewRes = await supabase
+      .from("course_progress")
+      .select("review_state")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!reviewRes.error && reviewRes.data?.review_state) {
+      review = reviewRes.data.review_state as ReviewState;
+    }
+  } catch {
+    // column absent or query failed — keep the empty schedule
+  }
+
   const hasRemoteData =
     courseRes.data || streakRes.data || (progressRes.data?.length ?? 0) > 0;
 
@@ -86,6 +104,7 @@ export async function loadStateFromSupabase(
       currentStreak: streakRes.data?.current_streak ?? 0,
       lastActiveDate: streakRes.data?.last_active_date ?? "",
     },
+    review,
   };
 }
 
@@ -134,4 +153,17 @@ export async function saveStateToSupabase(
     { onConflict: "user_id" }
   );
   if (courseError) throw courseError;
+
+  // Persist the spaced-repetition schedule separately and tolerantly, so a
+  // missing review_state column never blocks the core progress save above.
+  if (state.review) {
+    try {
+      await supabase
+        .from("course_progress")
+        .update({ review_state: state.review })
+        .eq("user_id", userId);
+    } catch {
+      // column absent — skip; localStorage still holds the schedule
+    }
+  }
 }

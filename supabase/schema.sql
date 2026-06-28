@@ -30,8 +30,14 @@ create table if not exists public.streaks (
 create table if not exists public.course_progress (
   user_id uuid primary key references auth.users(id) on delete cascade,
   course_id text not null default 'circuits-fundamentals',
-  unlocked_lessons text[] not null default array['lesson-1']
+  unlocked_lessons text[] not null default array['lesson-1'],
+  -- Phase 3: spaced-repetition memory model (per-concept Leitner schedule)
+  review_state jsonb not null default '{}'
 );
+
+-- For existing deployments created before Phase 3, add the column in place:
+alter table public.course_progress
+  add column if not exists review_state jsonb not null default '{}';
 
 alter table public.profiles enable row level security;
 alter table public.lesson_progress enable row level security;

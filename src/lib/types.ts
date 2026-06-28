@@ -1,4 +1,5 @@
 import type { NetworkSpec } from "@/lib/network";
+import type { ReviewState } from "@/lib/review";
 
 export type StepType =
   | "concept"
@@ -251,6 +252,8 @@ export type UserState = {
   lessonProgress: Record<string, LessonProgress>;
   unlockedLessons: string[];
   streak: StreakData;
+  /** Phase 3 spaced-repetition memory (optional for back-compat migration). */
+  review?: ReviewState;
 };
 
 export type CircuitState = {

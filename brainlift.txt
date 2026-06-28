@@ -224,3 +224,62 @@ CircuitLab implementation (primary source — this codebase)
   backbone (src/lib/ai/*) follows structured state -> engine truth -> model language
   -> guardrail re-check, with an AI-off fallback for every feature, so AI is additive,
   never load-bearing.
+
+
+==================================================
+Phase 3: Learning Science Layered In (primary source — this codebase)
+==================================================
+Phase 3 adds techniques to make recall durable, not just to get a learner through a
+lesson once. Each is implemented against the same deterministic substrate (so it all
+works with AI off) and is made *visible*, because an invisible learning gain is one a
+learner won't trust or act on.
+
+Why these fit circuits: the subject decomposes into a small set of discrete, recurring
+concepts (Ohm's law, series-add, parallel-reciprocal, equivalent resistance, power,
+multi-source). That is exactly the shape spaced repetition needs as schedulable
+"items," and the engine + practice generator can mint unlimited fresh problems per
+concept — so a review is genuine retrieval (solve a new problem from memory), not the
+memorization of one flashcard's answer.
+
+1. Spaced repetition (Roediger & Karpicke; Bjork desirable difficulties)
+   - src/lib/review.ts — a per-concept Leitner model (boxes 0..5). A clean recall
+     promotes a concept to a longer interval (1, 3, 7, 14, 30 days); a miss demotes it
+     two boxes so it resurfaces sooner. Concepts are seeded when their lesson is first
+     mastered (AuthContext.completeStep), persisted in UserState.review (localStorage +
+     a tolerant Supabase review_state column).
+   - "Strength" decays once a concept is overdue, so neglect is visible rather than
+     silent.
+
+2. Retrieval practice (Roediger & Karpicke; "memory is the residue of thought",
+   Willingham)
+   - The Daily Review (src/components/review/ReviewSession.tsx, /review) asks the
+     learner to *produce* an answer to a freshly generated problem for each due concept
+     — recall, not recognition. No passive re-reading; every item is a test.
+
+3. Interleaving (Bjork)
+   - The review queue mixes due concepts (Fisher–Yates shuffle) instead of blocking by
+     type, forcing the learner to *choose* the right method (series vs parallel vs
+     power) rather than reuse the last rule — the classic circuits failure mode.
+
+4. Scaffolding & desirable difficulty (Vygotsky ZPD; Rosenshine ~80% success)
+   - Per-lesson "Practice more" still escalates difficulty on clean solves and eases
+     after a miss (PracticeSession). The Daily Review pitches each problem at a
+     difficulty scaled to the concept's current box (review.ts reviewDifficulty),
+     fading support as strength grows while staying inside maxLevelForTopic.
+
+5. Mastery learning, made legible (Bloom)
+   - Unlock already gates on masteryScore >= masteryThreshold (storage.unlockNextLesson)
+     with a "Retry Mastery Check" loop. Phase 3 makes the signal durable and visible:
+     the course page shows per-concept retention % and a "review due" cue, and a
+     retention dashboard (RetentionPanel) surfaces overall retention and how many
+     concepts are due — so "mastered" is shown as a state that must be maintained, not
+     a one-time checkbox.
+
+6. Immediate, explanatory feedback (carried from Phase 1/2)
+   - Wrong answers still get an engine-grounded diagnosis tuned to what the learner
+     actually did (diagnose.ts), with all computed values redacted so feedback teaches
+     the next step without leaking the answer.
+
+Showing the effect: the RetentionPanel and per-lesson cards visualize strength bars,
+due counts, and accuracy over time — the observable output of the spaced-repetition
+model, readable straight from the deterministic memory state with no AI involved.

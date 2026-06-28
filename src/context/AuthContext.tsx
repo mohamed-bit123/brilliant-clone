@@ -20,6 +20,13 @@ import {
   updateStreak,
 } from "@/lib/storage";
 import { getLesson } from "@/content/course";
+import { LESSON_TOPIC } from "@/lib/ai/types";
+import {
+  isConcept,
+  markReviewedToday,
+  recordResult,
+  type ConceptId,
+} from "@/lib/review";
 import { createClient } from "@/lib/supabase/client";
 import {
   ensureProfile,
@@ -44,6 +51,10 @@ type AuthContextValue = {
     correct: boolean,
     masteryScore?: number
   ) => void;
+  /** Records one spaced-repetition recall result from the Daily Review. */
+  recordReview: (concept: ConceptId, correct: boolean) => void;
+  /** Marks that a Daily Review session ran today (for the "reviewed" signal). */
+  noteReviewSession: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -331,6 +342,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (isLastStep && passedMastery) {
           nextState = unlockNextLesson(nextState, lessonId, masteryScore!);
+          // Seed this lesson's concept into the spaced-repetition schedule on
+          // first mastery, so it starts surfacing for review.
+          const topic = LESSON_TOPIC[lessonId];
+          if (topic && isConcept(topic) && !nextState.review?.concepts[topic]) {
+            nextState = {
+              ...nextState,
+              review: recordResult(nextState.review, topic, true),
+            };
+          }
         }
 
         return nextState;
@@ -338,6 +358,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  const recordReview = useCallback((concept: ConceptId, correct: boolean) => {
+    setState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        streak: updateStreak(prev.streak),
+        review: recordResult(prev.review, concept, correct),
+      };
+    });
+  }, []);
+
+  const noteReviewSession = useCallback(() => {
+    setState((prev) => {
+      if (!prev) return prev;
+      return { ...prev, review: markReviewedToday(prev.review) };
+    });
+  }, []);
 
   const value: AuthContextValue = {
     user,
@@ -349,6 +387,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     updateLessonProgress,
     completeStep,
+    recordReview,
+    noteReviewSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

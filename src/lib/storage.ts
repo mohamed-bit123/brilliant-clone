@@ -1,5 +1,6 @@
 import type { LessonProgress, StreakData, UserProfile, UserState } from "@/lib/types";
 import { course } from "@/content/course";
+import { emptyReview } from "@/lib/review";
 
 const STORAGE_KEY = "circuitlab_user_state";
 
@@ -32,6 +33,7 @@ export function createInitialState(profile: UserProfile): UserState {
     },
     unlockedLessons: ["lesson-1"],
     streak: { currentStreak: 0, lastActiveDate: "" },
+    review: emptyReview(),
   };
 }
 
@@ -40,7 +42,10 @@ export function loadUserState(): UserState | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as UserState;
+    const parsed = JSON.parse(raw) as UserState;
+    // Migration: older saved states predate the spaced-repetition model.
+    if (!parsed.review) parsed.review = emptyReview();
+    return parsed;
   } catch {
     return null;
   }
