@@ -38,6 +38,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
 
   useEffect(() => {
     if (saved.completed && saved.masteryScore >= lesson.masteryThreshold) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowComplete(true);
     }
   }, [saved.completed, saved.masteryScore, lesson.masteryThreshold]);
@@ -225,7 +226,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
                           ? "bg-sky-950/60 text-sky-200 ring-1 ring-sky-500/40"
                           : reachable
                             ? "text-slate-300 hover:bg-slate-800/60"
-                            : "cursor-not-allowed text-slate-600"
+                            : "cursor-not-allowed text-slate-500"
                       }`}
                     >
                       <span
@@ -236,7 +237,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
                               ? "bg-sky-600 text-white"
                               : reachable
                                 ? "bg-slate-700 text-slate-300"
-                                : "bg-slate-800 text-slate-600"
+                                : "bg-slate-800 text-slate-500"
                         }`}
                       >
                         {isDone ? "✓" : i + 1}
@@ -264,7 +265,7 @@ export function LessonEngine({ lesson }: LessonEngineProps) {
               <Link href="/course" className="text-sm text-slate-400 hover:text-slate-300">
                 ← Course
               </Link>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-400">
                 Step {stepIndex + 1}/{lesson.steps.length}
               </span>
             </div>

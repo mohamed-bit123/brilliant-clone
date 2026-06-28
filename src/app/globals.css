@@ -27,3 +27,40 @@ input[type="range"] {
   height: 6px;
   border-radius: 9999px;
 }
+
+/*
+ * Accessibility baseline.
+ * These rules live outside Tailwind's cascade layers, so they take precedence
+ * over utilities like `outline-none` — guaranteeing a visible keyboard focus
+ * indicator on every interactive element (inputs, buttons, links, sliders).
+ */
+:focus-visible {
+  outline: 2px solid #7dd3fc; /* sky-300 */
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #38bdf8; /* sky-400 */
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.35);
+  color: #f8fafc;
+}
+
+/* Honor users who prefer reduced motion (loaders, pulses, transitions). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

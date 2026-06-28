@@ -147,7 +147,7 @@ export function DragDropStep({
         {placed ? (
           <span className="font-mono text-lg text-emerald-300">{placed} placed · I = {current.toFixed(2)}A</span>
         ) : (
-          <span className="text-sm text-slate-500">Drop a resistor here</span>
+          <span className="text-sm text-slate-400">Drop a resistor here</span>
         )}
       </div>
 

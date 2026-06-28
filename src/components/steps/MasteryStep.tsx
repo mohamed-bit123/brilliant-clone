@@ -57,7 +57,7 @@ export function MasteryStep({
 
   return (
     <div>
-      <p className="mb-2 text-xs text-slate-500">
+      <p className="mb-2 text-xs text-slate-400">
         Question {index + 1} of {questions.length}
       </p>
       <p className="mb-4 font-medium">{q.prompt}</p>

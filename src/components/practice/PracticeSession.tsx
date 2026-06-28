@@ -83,7 +83,7 @@ export function PracticeSession({ lessonId, topic, lessonTitle }: PracticeSessio
         >
           ← Back to lesson
         </Link>
-        <Link href="/course" className="text-sm text-slate-500 hover:text-slate-300">
+        <Link href="/course" className="text-sm text-slate-400 hover:text-slate-300">
           Course
         </Link>
       </div>
@@ -150,7 +150,7 @@ function LevelMeter({ level, maxLevel }: { level: Difficulty; maxLevel: Difficul
       className="flex items-center gap-1.5"
       aria-label={`Difficulty level ${level} of ${maxLevel}`}
     >
-      <span className="mr-1 text-xs text-slate-500">Level {level}</span>
+      <span className="mr-1 text-xs text-slate-400">Level {level}</span>
       {Array.from({ length: maxLevel }, (_, i) => i + 1).map((n) => (
         <span
           key={n}

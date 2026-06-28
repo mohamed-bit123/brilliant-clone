@@ -46,7 +46,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => signOut()}
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-slate-400 hover:text-slate-300"
             >
               Sign out
             </button>

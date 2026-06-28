@@ -46,7 +46,7 @@ export function AIHint({ context, label = "Get a smart hint" }: { context: StepC
         {loading ? "Thinking…" : label}
       </button>
       {error && (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-slate-400">
           Couldn&apos;t reach the tutor right now. Try the formula that links these quantities.
         </p>
       )}
@@ -99,7 +99,7 @@ export function AIExplain({ context }: { context: StepContext }) {
         {loading ? "Analyzing…" : "Explain my mistake"}
       </button>
       {error && (
-        <p className="mt-1 text-xs text-slate-500">Couldn&apos;t reach the tutor right now.</p>
+        <p className="mt-1 text-xs text-slate-400">Couldn&apos;t reach the tutor right now.</p>
       )}
     </div>
   );

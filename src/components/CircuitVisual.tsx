@@ -259,7 +259,7 @@ export function CircuitVisual({
       )}
 
       {mode === "parallel" && (
-        <p className="mt-2 text-center text-xs text-slate-500">
+        <p className="mt-2 text-center text-xs text-slate-400">
           Blue/purple dots = each branch · Gold dots = total current (feed & return path)
         </p>
       )}

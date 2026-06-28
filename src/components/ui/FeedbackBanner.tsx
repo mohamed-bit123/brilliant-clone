@@ -25,9 +25,11 @@ export function FeedbackBanner({ message, variant }: FeedbackBannerProps) {
   return (
     <div
       className={`mt-4 rounded-xl border px-4 py-3 text-sm leading-relaxed ${styles[variant]}`}
-      role="status"
+      role={variant === "incorrect" ? "alert" : "status"}
     >
-      <span className="mr-2 font-bold">{icons[variant]}</span>
+      <span className="mr-2 font-bold" aria-hidden="true">
+        {icons[variant]}
+      </span>
       {message}
     </div>
   );
@@ -48,7 +50,14 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
           <span>{pct}%</span>
         </div>
       )}
-      <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+      <div
+        className="h-2 overflow-hidden rounded-full bg-slate-700"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label ?? "Progress"}
+      >
         <div
           className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-300"
           style={{ width: `${pct}%` }}
@@ -61,8 +70,10 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
 export function StreakBadge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-orange-950/80 px-3 py-1 text-sm font-medium leading-none text-orange-300 ring-1 ring-orange-500/30">
-      <span className="leading-none">🔥</span>
+    <span className="inline-flex items-center gap-1 rounded-full bg-orange-950/80 px-3 py-1 text-sm font-medium leading-none text-orange-200 ring-1 ring-orange-500/40">
+      <span className="leading-none" aria-hidden="true">
+        🔥
+      </span>
       <span className="leading-none">{count} Day Streak</span>
     </span>
   );

@@ -323,7 +323,7 @@ function PlotChallenge({
   return (
     <div>
       <div className="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
-        <p className="mb-1 text-center text-xs text-slate-500">{model.note}</p>
+        <p className="mb-1 text-center text-xs text-slate-400">{model.note}</p>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${W} ${H}`}
@@ -440,7 +440,7 @@ function PlotChallenge({
         {interaction.scenario ??
           `Tap the graph to plot the ${model.yLabel.toLowerCase()} at each marked ${model.xLabel.toLowerCase()}.`}
       </p>
-      <p className="mt-1 text-center text-xs text-slate-500">
+      <p className="mt-1 text-center text-xs text-slate-400">
         {Object.keys(placed).length}/{xs.length} points placed · grid spacing {yStep}
         {model.yUnit}
       </p>
@@ -553,7 +553,7 @@ function GraphChart({
 
   return (
     <div className="rounded-xl border border-slate-600 bg-slate-900/80 p-3">
-      <p className="mb-1 text-center text-xs text-slate-500">{model.note}</p>
+      <p className="mb-1 text-center text-xs text-slate-400">{model.note}</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto w-full max-w-sm">
         {/* horizontal gridlines + y-axis numbers */}
         {yTicks.map((ty) => {

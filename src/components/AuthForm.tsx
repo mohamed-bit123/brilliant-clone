@@ -99,7 +99,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </button>
           <div className="flex items-center gap-3">
             <span className="h-px flex-1 bg-slate-700" />
-            <span className="text-xs text-slate-500">or</span>
+            <span className="text-xs text-slate-400">or</span>
             <span className="h-px flex-1 bg-slate-700" />
           </div>
         </>
@@ -108,39 +108,54 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <form onSubmit={handleSubmit} className="space-y-4">
       {mode === "signup" && (
         <div>
-          <label className="mb-1 block text-sm text-slate-400">Name</label>
+          <label htmlFor="af-name" className="mb-1 block text-sm text-slate-300">
+            Name
+          </label>
           <input
+            id="af-name"
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Your name"
-            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm outline-none focus:border-sky-500"
+            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-400 focus:border-sky-500"
           />
         </div>
       )}
       <div>
-        <label className="mb-1 block text-sm text-slate-400">Email</label>
+        <label htmlFor="af-email" className="mb-1 block text-sm text-slate-300">
+          Email
+        </label>
         <input
+          id="af-email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm outline-none focus:border-sky-500"
+          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-slate-100 focus:border-sky-500"
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm text-slate-400">Password</label>
+        <label htmlFor="af-password" className="mb-1 block text-sm text-slate-300">
+          Password
+        </label>
         <input
+          id="af-password"
           type="password"
           required
           minLength={6}
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm outline-none focus:border-sky-500"
+          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-slate-100 focus:border-sky-500"
         />
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-300">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"

@@ -113,13 +113,13 @@ function ConceptRow({ mem, today }: { mem: ConceptMemory; today: string }) {
       </span>
       <span
         className={`hidden w-24 shrink-0 text-right text-xs sm:inline ${
-          due ? "font-medium text-violet-300" : "text-slate-500"
+          due ? "font-medium text-violet-300" : "text-slate-400"
         }`}
       >
         {dueLabel}
       </span>
       {acc !== null && (
-        <span className="hidden w-16 shrink-0 text-right text-xs text-slate-500 md:inline">
+        <span className="hidden w-16 shrink-0 text-right text-xs text-slate-400 md:inline">
           {acc}% acc
         </span>
       )}

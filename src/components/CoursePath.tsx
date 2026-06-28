@@ -88,7 +88,7 @@ export function CoursePath() {
                   </div>
                   <span
                     className={`shrink-0 text-lg transition-transform group-hover:translate-x-0.5 ${
-                      unlocked ? "text-slate-500" : "text-transparent"
+                      unlocked ? "text-slate-400" : "text-transparent"
                     }`}
                   >
                     →
@@ -102,7 +102,7 @@ export function CoursePath() {
                         ✓ Mastered
                       </p>
                       {retentionPct !== null && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-slate-400">
                           · retention {retentionPct}%
                         </span>
                       )}
@@ -114,7 +114,7 @@ export function CoursePath() {
                     </div>
                   )}
                   {unlocked && !completed && currentStep === 0 && (
-                    <p className="text-xs text-slate-500">Ready to start</p>
+                    <p className="text-xs text-slate-400">Ready to start</p>
                   )}
                   {inProgress && (
                     <div>
@@ -130,7 +130,7 @@ export function CoursePath() {
                     </div>
                   )}
                   {!unlocked && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       Complete previous lesson to unlock
                     </p>
                   )}

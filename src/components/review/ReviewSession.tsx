@@ -257,7 +257,7 @@ export function ReviewSession() {
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-slate-400">
         Mixed concepts, recalled from memory.{" "}
         {aiEnabled ? "Scenarios are AI-generated and engine-verified." : "Verified by the circuit engine — works with AI off."}
       </p>

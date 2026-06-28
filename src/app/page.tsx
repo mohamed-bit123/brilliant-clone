@@ -80,7 +80,7 @@ export default function HomePage() {
                 {error && <p className="text-center text-sm text-red-400">{error}</p>}
                 <div className="flex items-center gap-3 py-1">
                   <span className="h-px flex-1 bg-slate-700" />
-                  <span className="text-xs text-slate-500">or</span>
+                  <span className="text-xs text-slate-400">or</span>
                   <span className="h-px flex-1 bg-slate-700" />
                 </div>
               </>
