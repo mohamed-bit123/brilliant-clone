@@ -44,3 +44,8 @@ skills-lock.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# brainlift docs (kept locally, not tracked in the repo)
+BRAINLIFT.md
+brainlift.txt
+Brainlift.docx
