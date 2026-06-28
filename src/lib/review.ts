@@ -105,6 +105,18 @@ export function emptyReview(): ReviewState {
   return { concepts: {} };
 }
 
+/**
+ * Coerces any persisted/legacy value into a valid ReviewState. Older saves and
+ * the Supabase `'{}'` column default lack a `concepts` map, which would crash
+ * reads like `review.concepts[id]`; this guarantees the shape.
+ */
+export function normalizeReview(review: ReviewState | undefined | null): ReviewState {
+  if (!review || typeof review !== "object" || !review.concepts) {
+    return { concepts: {}, lastReviewDate: review?.lastReviewDate };
+  }
+  return review;
+}
+
 function freshMemory(concept: ConceptId, today: string): ConceptMemory {
   return {
     concept,
@@ -150,7 +162,7 @@ export function recordResult(
   correct: boolean,
   today = todayISO()
 ): ReviewState {
-  const base = review ?? emptyReview();
+  const base = normalizeReview(review);
   const existing = base.concepts[concept] ?? freshMemory(concept, today);
   return {
     ...base,
@@ -166,7 +178,7 @@ export function markReviewedToday(
   review: ReviewState | undefined,
   today = todayISO()
 ): ReviewState {
-  return { ...(review ?? emptyReview()), lastReviewDate: today };
+  return { ...normalizeReview(review), lastReviewDate: today };
 }
 
 // --- read models for UI -----------------------------------------------------
@@ -200,7 +212,7 @@ export function accuracy(mem: ConceptMemory): number {
 
 /** Concepts the learner has been introduced to, in course order. */
 export function introducedConcepts(review: ReviewState | undefined): ConceptMemory[] {
-  const r = review ?? emptyReview();
+  const r = normalizeReview(review);
   return CONCEPTS.map((c) => r.concepts[c]).filter(
     (m): m is ConceptMemory => Boolean(m)
   );

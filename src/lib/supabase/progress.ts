@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LessonProgress, UserProfile, UserState } from "@/lib/types";
 import type { ReviewState } from "@/lib/review";
-import { emptyReview } from "@/lib/review";
+import { emptyReview, normalizeReview } from "@/lib/review";
 import { COURSE_ID } from "@/content/course";
 import { createDefaultProgress, createInitialState } from "@/lib/storage";
 
@@ -65,7 +65,7 @@ export async function loadStateFromSupabase(
       .eq("user_id", userId)
       .maybeSingle();
     if (!reviewRes.error && reviewRes.data?.review_state) {
-      review = reviewRes.data.review_state as ReviewState;
+      review = normalizeReview(reviewRes.data.review_state as ReviewState);
     }
   } catch {
     // column absent or query failed — keep the empty schedule

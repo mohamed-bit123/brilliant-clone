@@ -168,7 +168,7 @@ export function ReviewSession() {
 
           <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left">
             {results.map((r, i) => {
-              const mem = state?.review?.concepts[r.concept];
+              const mem = state?.review?.concepts?.[r.concept];
               const after = mem ? strength(mem) : 0;
               const delta = after - (before[r.concept] ?? 0);
               return (

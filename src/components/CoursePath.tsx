@@ -48,7 +48,7 @@ export function CoursePath() {
 
           const topic = LESSON_TOPIC[lesson.id];
           const mem =
-            topic && isConcept(topic) ? state.review?.concepts[topic] : undefined;
+            topic && isConcept(topic) ? state.review?.concepts?.[topic] : undefined;
           const retentionPct = mem ? Math.round(strength(mem) * 100) : null;
           const reviewDue = mem ? isDue(mem) : false;
 

@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Seed this lesson's concept into the spaced-repetition schedule on
           // first mastery, so it starts surfacing for review.
           const topic = LESSON_TOPIC[lessonId];
-          if (topic && isConcept(topic) && !nextState.review?.concepts[topic]) {
+          if (topic && isConcept(topic) && !nextState.review?.concepts?.[topic]) {
             nextState = {
               ...nextState,
               review: recordResult(nextState.review, topic, true),

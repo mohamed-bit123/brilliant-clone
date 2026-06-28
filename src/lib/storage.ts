@@ -1,6 +1,6 @@
 import type { LessonProgress, StreakData, UserProfile, UserState } from "@/lib/types";
 import { course } from "@/content/course";
-import { emptyReview } from "@/lib/review";
+import { emptyReview, normalizeReview } from "@/lib/review";
 
 const STORAGE_KEY = "circuitlab_user_state";
 
@@ -43,8 +43,9 @@ export function loadUserState(): UserState | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as UserState;
-    // Migration: older saved states predate the spaced-repetition model.
-    if (!parsed.review) parsed.review = emptyReview();
+    // Migration: older saved states predate the spaced-repetition model, and
+    // some persisted an empty `{}` review without a concepts map.
+    parsed.review = normalizeReview(parsed.review);
     return parsed;
   } catch {
     return null;
